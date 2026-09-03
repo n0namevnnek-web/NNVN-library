@@ -19,7 +19,7 @@
 
 -- ========= LOAD LIBRARY =========
 -- Đổi sang link raw / readfile của bạn:
-local Library = loadstring(game:HttpGet("YOUR_RAW_URL_NNVN_Hub.lua"))()
+local Library = loadstring(game:HttpGet("https://github.com/n0namevnnek-web/NNVN-library/raw/refs/heads/main/NNVNLib.lua"))()
 -- local Library = loadstring(readfile("NNVN_Hub.lua"))()
 
 -- ========= SAVE CONFIG =========
