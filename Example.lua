@@ -1,6 +1,6 @@
 --[[
-    NNVN Lib v1.4.3 — Example
-    Redz-style Darker · WindUI Tags · User panel (Anonymous) bottom-left
+    NNVN Lib v1.4.4 — Example
+    Redz-style Darker 99% · Tag + User panel (WindUI features only)
 ]]
 
 local Library = loadstring(game:HttpGet(
@@ -11,19 +11,18 @@ Library.Default.Language = "en"
 
 local Window = Library:MakeWindow({
     Title = "NNVN Hub",
-    SubTitle = "v1.4.3",
+    SubTitle = "v1.4.4",
     ScriptFolder = "NNVNHub",
     BackgroundImage = "10709752996",
     BackgroundImageTransparency = 0.72,
     Acrylic = false,
-    -- WindUI-style user panel (bottom-left of sidebar)
     User = {
         Enabled = true,
-        Anonymous = true, -- true = hide real name/avatar
+        Anonymous = true,
         Callback = function()
             Window:Notify({
                 Title = "User",
-                Content = "Clicked profile (Anonymous = " .. tostring(Window.User.Anonymous) .. ")",
+                Content = "Anonymous = " .. tostring(Window.User.Anonymous),
                 Duration = 2.5
             })
         end
@@ -38,9 +37,9 @@ Window:CreateOpenButton({
     Icon = "10734896206"
 })
 
--- WindUI-style tags (top center)
+-- Small pills on topbar center (does not break redz layout)
 Window:AddTag({ Title = "BETA" })
-Window:AddTag({ Title = "v1.4.3", Color = Color3.fromRGB(88, 101, 242) })
+Window:AddTag({ Title = "v1.4.4", Color = Color3.fromRGB(88, 101, 242) })
 
 local Main = Window:MakeTab({ Title = "Main", Icon = "home" })
 Main:AddSection("Combat")
@@ -60,7 +59,7 @@ Main:AddSlider({
     Callback = function(v) print(v) end
 })
 
-local bar = Main:AddProgressBar({
+Main:AddProgressBar({
     Title = "Progress",
     Min = 0, Max = 100, Default = 40
 })
@@ -75,7 +74,7 @@ Main:AddColorpicker({
 Main:AddButton({
     Title = "Notify",
     Callback = function()
-        Window:Notify({ Title = "NNVN", Content = "Redz-style Darker UI", Duration = 3 })
+        Window:Notify({ Title = "NNVN", Content = "Redz-style UI", Duration = 3 })
     end
 })
 
@@ -112,7 +111,6 @@ Settings:AddToggle({
 
 Settings:AddToggle({
     Title = "Show User Panel",
-    Description = "Bottom-left player info",
     Default = true,
     Callback = function(v)
         if v then Window.User:Enable() else Window.User:Disable() end
@@ -121,14 +119,13 @@ Settings:AddToggle({
 
 Settings:AddToggle({
     Title = "Anonymous",
-    Description = "Hide real name & avatar",
     Default = true,
     Callback = function(v) Window.User:SetAnonymous(v) end
 })
 
 Settings:AddTextBox({
     Title = "Background Image ID",
-    Description = "Number only — works with or without Acrylic",
+    Description = "Number only",
     Placeholder = "10709752996",
     Flag = "BgId",
     Callback = function(t) Window:SetBackgroundImage(t) end
@@ -147,4 +144,4 @@ Settings:AddSlider({
     Callback = function(v) Library:SetUIScale(v) end
 })
 
-print("[NNVN] v1.4.3 loaded | Theme:", Library:GetCurrentTheme().Name)
+print("[NNVN] v1.4.4 loaded | Theme:", Library:GetCurrentTheme().Name)
