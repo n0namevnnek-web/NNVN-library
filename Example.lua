@@ -1,24 +1,24 @@
 --[[
-    NNVN Hub — Full Example (API đúng)
-    ================================
+    NNVN Hub — Full Example
+    ========================
     API:
-      Library:CreateWindow({ Title, Description, SizeUi, Language, MinSize, MaxSize, ["Tab Width"] })
+      Library:CreateWindow({ Title, Description, SizeUi?, Language, MinSize, MaxSize, ["Tab Width"] })
       Window:CreateTab({ Name, Icon })
-      Tab:AddSection(Title, OpenSection?)   -- KHÔNG phải CreateSection
+      Tab:AddSection(Title, OpenSection?)
       Section:AddParagraph / AddSeperator / AddLine / AddButton / AddToggle / AddSlider / AddInput / AddDropdown
       Library:SetNotification({ Title, Description, Content, Time, Delay })
       Library:SetLanguage("vi"|"en")
       Library.FuncsV3  -- helper + SaveConfig
 
-    Cửa sổ:
-      • 3 nút góc phải: Minimize (minus) | Maximize | Close (x)  — icon Lucide
-      • Thanh dưới (BottomBar): kéo để di chuyển UI
-      • Góc phải dưới: resize (thu phóng)
-      • Chấm trắng bên tab: đánh dấu tab đang chọn
+    Window controls:
+      • Top-right: Minus (minimize) | Maximize | X (close)
+      • Bottom bar: drag to move window
+      • Bottom-right corner: resize
+      • White dot on tab: indicates active tab
 ]]
 
 -- ========= LOAD LIBRARY =========
--- Đổi sang link raw / readfile của bạn:
+-- Replace with your raw URL or readfile
 local Library = loadstring(game:HttpGet("https://github.com/n0namevnnek-web/NNVN-library/raw/refs/heads/main/NNVNLib.lua"))()
 -- local Library = loadstring(readfile("NNVN_Hub.lua"))()
 
@@ -32,12 +32,12 @@ local SaveConfig = {
 }
 
 -- ========= WINDOW =========
+-- No fixed SizeUi → auto‑scale (PC 700×420, mobile 350×210)
 local Window = Library:CreateWindow({
     Title = "NNVN Hub",
     Description = "v1.0",
     ["Tab Width"] = 140,
-    SizeUi = UDim2.fromOffset(720, 440),
-    Language = "vi",
+    Language = "en",                 -- default English
     MinSize = Vector2.new(480, 300),
     MaxSize = Vector2.new(1000, 650),
 })
@@ -45,25 +45,24 @@ local Window = Library:CreateWindow({
 local F = Library.FuncsV3
 F:SetTable(SaveConfig)
 
--- ========= TAB 1: CHÍNH =========
+-- ========= TAB 1: MAIN =========
 local MainTab = Window:CreateTab({
-    Name = "Chính",
+    Name = "Main",
     Icon = "rbxassetid://7734053426",
 })
 
--- ĐÚNG API: AddSection (không phải CreateSection)
-local MainSection = MainTab:AddSection("Tính năng chính", true)
+local MainSection = MainTab:AddSection("Core Features", true)
 
 MainSection:AddParagraph({
-    Title = "Hướng dẫn cửa sổ",
-    Content = "• Kéo thanh trên hoặc thanh dưới (BottomBar) để di chuyển\n• Kéo góc phải dưới để thu phóng (resize)\n• Nút – thu nhỏ | maximize phóng to | x đóng\n• Chấm trắng = tab đang chọn",
+    Title = "Window Guide",
+    Content = "• Drag the top bar or bottom bar (BottomBar) to move\n• Drag the bottom‑right corner to resize\n• Buttons: – minimize | maximize | ✕ close\n• White dot = active tab",
 })
 
-MainSection:AddSeperator({ Title = "Nút & Toggle" })
+MainSection:AddSeperator({ Title = "Buttons & Toggles" })
 
 MainSection:AddButton({
     Title = "Test Notification",
-    Content = "Hiện thông báo góc dưới bên trái",
+    Content = "Show a notification at bottom‑right",
     Icon = "rbxassetid://16932740082",
     Callback = function()
         Library:SetNotification({
@@ -76,22 +75,22 @@ MainSection:AddButton({
     end,
 })
 
-F:Button(MainSection, "Kill All (Demo)", "Chỉ là ví dụ callback", function()
+F:Button(MainSection, "Kill All (Demo)", "Just a demo callback", function()
     print("[NNVN] Kill All")
     Library:SetNotification({
         Title = "NNVN Hub",
         Description = "Info",
-        Content = "Đã gọi Kill All (demo)",
+        Content = "Kill All called (demo)",
         Delay = 2,
     })
 end)
 
-F:Toggle(MainSection, "Auto Farm", "Bật/tắt auto farm (lưu config)", "Save", function(v)
+F:Toggle(MainSection, "Auto Farm", "Enable/disable auto farming (saved)", "Save", function(v)
     SaveConfig["Auto Farm"] = v
     print("[NNVN] Auto Farm =", v)
 end)
 
-F:Toggle(MainSection, "Speed Boost", "Tăng tốc độ", "Save", function(v)
+F:Toggle(MainSection, "Speed Boost", "Enable speed boost", "Save", function(v)
     SaveConfig["Speed Boost"] = v
     print("[NNVN] Speed Boost =", v)
 end)
@@ -101,7 +100,7 @@ MainSection:AddSeperator({ Title = "Slider & Input" })
 
 MainSection:AddSlider({
     Title = "WalkSpeed",
-    Content = "Chỉnh tốc độ đi",
+    Content = "Adjust movement speed",
     Increment = 1,
     Min = 16,
     Max = 200,
@@ -114,29 +113,29 @@ MainSection:AddSlider({
     end,
 })
 
-F:Textbox(MainSection, "Player Name", "Nhập tên người chơi", "Save", function(text)
+F:Textbox(MainSection, "Player Name", "Enter player name", "Save", function(text)
     SaveConfig["Player Name"] = text
     print("[NNVN] Player Name =", text)
 end)
 
 MainSection:AddInput({
     Title = "Webhook URL",
-    Content = "Dán webhook (demo)",
+    Content = "Paste webhook (demo)",
     Default = "",
     Callback = function(text)
         print("[NNVN] Webhook =", text)
     end,
 })
 
--- ========= TAB 2: CHIẾN ĐẤU =========
+-- ========= TAB 2: COMBAT =========
 local CombatTab = Window:CreateTab({
-    Name = "Chiến đấu",
+    Name = "Combat",
     Icon = "rbxassetid://7733920644",
 })
 
-local CombatSec = CombatTab:AddSection("Vũ khí & Skill", true)
+local CombatSec = CombatTab:AddSection("Weapons & Skills", true)
 
-F:Dropdown(CombatSec, "Weapon", "Chọn vũ khí", false, {
+F:Dropdown(CombatSec, "Weapon", "Choose a weapon", false, {
     "Sword", "Gun", "Bow", "Magic Staff", "Dagger"
 }, "Save", function(val)
     SaveConfig["Weapon"] = val
@@ -145,7 +144,7 @@ end)
 
 CombatSec:AddDropdown({
     Title = "Skills (Multi)",
-    Content = "Chọn nhiều skill + search",
+    Content = "Select multiple skills + search",
     Multi = true,
     Options = {"Slash", "Fireball", "Heal", "Dash", "Shield"},
     Default = {"Slash"},
@@ -156,14 +155,14 @@ CombatSec:AddDropdown({
 
 CombatSec:AddToggle({
     Title = "Auto Attack",
-    Content = "Tự động đánh quái gần nhất",
+    Content = "Automatically attack nearest enemy",
     Default = false,
     Callback = function(v) print("[NNVN] Auto Attack =", v) end,
 })
 
 CombatSec:AddSlider({
     Title = "Attack Range",
-    Content = "Phạm vi tấn công",
+    Content = "Attack range in studs",
     Increment = 1,
     Min = 5,
     Max = 100,
@@ -171,52 +170,53 @@ CombatSec:AddSlider({
     Callback = function(v) print("[NNVN] Range =", v) end,
 })
 
--- ========= TAB 3: CÀI ĐẶT =========
+-- ========= TAB 3: SETTINGS =========
 local SettingsTab = Window:CreateTab({
-    Name = "Cài đặt",
+    Name = "Settings",
     Icon = "rbxassetid://7734053495",
 })
 
-local LangSec = SettingsTab:AddSection("Ngôn ngữ & Giao diện", true)
+local LangSec = SettingsTab:AddSection("Language & Interface", true)
 
 LangSec:AddParagraph({
-    Title = "BottomBar là gì?",
-    Content = "Thanh dài dưới đáy cửa sổ = BottomBar (thanh kéo). Kéo nó để di chuyển UI. Góc phải dưới = ResizeHandle (thu phóng).",
+    Title = "What is BottomBar?",
+    Content = "The long bar at the bottom of the window is the BottomBar (drag handle). Drag it to move the UI. The bottom‑right corner is the resize handle.",
 })
 
-LangSec:AddButton({
-    Title = "Tiếng Việt",
-    Content = "Đổi sang tiếng Việt",
-    Callback = function()
-        Library:SetLanguage("vi")
-        Library:SetNotification({
-            Title = "NNVN Hub",
-            Description = "Ngôn ngữ",
-            Content = "Đã chuyển sang Tiếng Việt",
-            Delay = 2,
-        })
+-- Dropdown to switch language (replaces two separate buttons)
+LangSec:AddDropdown({
+    Title = "Language",
+    Content = "Choose interface language",
+    Multi = false,
+    Options = {"English", "Tiếng Việt"},
+    Default = {"English"},
+    Callback = function(val)
+        local lang = val[1]
+        if lang == "Tiếng Việt" then
+            Library:SetLanguage("vi")
+            Library:SetNotification({
+                Title = "NNVN Hub",
+                Description = "Ngôn ngữ",
+                Content = "Đã chuyển sang Tiếng Việt",
+                Delay = 2,
+            })
+        else
+            Library:SetLanguage("en")
+            Library:SetNotification({
+                Title = "NNVN Hub",
+                Description = "Language",
+                Content = "Switched to English",
+                Delay = 2,
+            })
+        end
     end,
 })
 
-LangSec:AddButton({
-    Title = "English",
-    Content = "Switch to English",
-    Callback = function()
-        Library:SetLanguage("en")
-        Library:SetNotification({
-            Title = "NNVN Hub",
-            Description = "Language",
-            Content = "Switched to English",
-            Delay = 2,
-        })
-    end,
-})
-
-LangSec:AddSeperator({ Title = "Khác" })
+LangSec:AddSeperator({ Title = "Other" })
 
 LangSec:AddButton({
     Title = "Print SaveConfig",
-    Content = "In config ra console",
+    Content = "Print current config to console",
     Callback = function()
         print("===== SaveConfig =====")
         for k, v in pairs(SaveConfig) do
@@ -231,14 +231,14 @@ LangSec:AddButton({
 
 LangSec:AddButton({
     Title = "Notify x3",
-    Content = "Test stack notification",
+    Content = "Test stacked notifications",
     Callback = function()
         for i = 1, 3 do
             task.spawn(function()
                 Library:SetNotification({
                     Title = "NNVN Hub",
                     Description = "Test #" .. i,
-                    Content = "Thông báo số " .. i,
+                    Content = "Notification number " .. i,
                     Delay = 3 + i,
                 })
             end)
@@ -253,11 +253,11 @@ local ExtraTab = Window:CreateTab({
     Icon = "rbxassetid://7733715400",
 })
 
-local ExtraSec = ExtraTab:AddSection("Tất cả component", true)
+local ExtraSec = ExtraTab:AddSection("All Components", true)
 
 ExtraSec:AddParagraph({
     Title = "Paragraph",
-    Content = "Ghi chú / hướng dẫn dài. Text tự wrap.",
+    Content = "Long descriptive text. Text wraps automatically.",
 })
 
 ExtraSec:AddSeperator({ Title = "Separator Title" })
@@ -265,56 +265,57 @@ ExtraSec:AddLine()
 
 ExtraSec:AddButton({
     Title = "Button",
-    Content = "Nút thường",
-    Callback = function() print("Button") end,
+    Content = "Standard button",
+    Callback = function() print("Button clicked") end,
 })
 
 ExtraSec:AddToggle({
     Title = "Toggle",
-    Content = "Công tắc",
+    Content = "On/off switch",
     Default = true,
-    Callback = function(v) print("Toggle", v) end,
+    Callback = function(v) print("Toggle =", v) end,
 })
 
 ExtraSec:AddSlider({
     Title = "Slider",
-    Content = "Kéo hoặc nhập số",
+    Content = "Drag or type a number",
     Increment = 5,
     Min = 0,
     Max = 100,
     Default = 50,
-    Callback = function(v) print("Slider", v) end,
+    Callback = function(v) print("Slider =", v) end,
 })
 
 ExtraSec:AddInput({
     Title = "Input",
-    Content = "Ô nhập text",
+    Content = "Text input field",
     Default = "Hello NNVN",
-    Callback = function(t) print("Input", t) end,
+    Callback = function(t) print("Input =", t) end,
 })
 
 ExtraSec:AddDropdown({
     Title = "Dropdown Single",
-    Content = "Chọn 1",
+    Content = "Select one option",
     Multi = false,
     Options = {"A", "B", "C", "D"},
     Default = {"A"},
-    Callback = function(v) print("DD", table.concat(v, ",")) end,
+    Callback = function(v) print("Dropdown =", table.concat(v, ",")) end,
 })
 
 ExtraSec:AddDropdown({
     Title = "Dropdown Multi",
-    Content = "Chọn nhiều + search",
+    Content = "Select multiple + search",
     Multi = true,
     Options = {"Red", "Green", "Blue", "Yellow", "Purple", "Orange"},
     Default = {"Red", "Blue"},
-    Callback = function(v) print("Multi", table.concat(v, ",")) end,
+    Callback = function(v) print("Multi =", table.concat(v, ",")) end,
 })
 
+-- ========= STARTUP NOTIFICATION =========
 print("[NNVN Hub] Example loaded!")
 Library:SetNotification({
     Title = "NNVN Hub",
     Description = "Ready",
-    Content = "UI sẵn sàng. Kéo BottomBar / resize góc để thử!",
+    Content = "UI ready. Drag BottomBar / resize corner to test!",
     Delay = 4,
 })
