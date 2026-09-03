@@ -131,19 +131,19 @@ local Themes = {
         Color3.fromRGB(99, 102, 241),
         Color3.fromRGB(245, 245, 250)
     ),
-    -- Redz-style Darker (default) — lighter + clearer contrast (WindUI-inspired)
+    -- Redz-style Darker (default) — 99% redz, slight contrast for elements
     Darker = MakeTheme("Darker",
         Color3.fromRGB(88, 101, 242),
         Color3.fromRGB(232, 233, 235),
         {
-            bg1 = Color3.fromRGB(22, 22, 26),
-            bg2 = Color3.fromRGB(30, 30, 36),
-            stroke = Color3.fromRGB(55, 55, 65),
-            btnDefault = Color3.fromRGB(36, 36, 42),
-            btnHold = Color3.fromRGB(48, 48, 56),
-            dialog = Color3.fromRGB(26, 26, 30),
-            onPrimary = Color3.fromRGB(55, 62, 130),
-            transparency = 0.04
+            bg1 = Color3.fromRGB(25, 25, 25),
+            bg2 = Color3.fromRGB(32, 32, 32),
+            stroke = Color3.fromRGB(45, 45, 45),
+            btnDefault = Color3.fromRGB(30, 30, 32),
+            btnHold = Color3.fromRGB(38, 38, 40),
+            dialog = Color3.fromRGB(28, 28, 28),
+            onPrimary = Color3.fromRGB(61, 67, 135),
+            transparency = 0.03
         }
     ),
 
@@ -340,14 +340,14 @@ local Languages = {
 
 local Library = {
     Information = {
-        Version = "v1.4.3",
+        Version = "v1.4.4",
         Name = "NNVN Lib",
         GitHubOwner = "NNVN"
     },
     Default = {
         Theme = "Darker",
         -- Desktop larger / Mobile slightly bigger
-        UISize = IS_MOBILE and UDim2.fromOffset(400, 300) or UDim2.fromOffset(560, 380),
+        UISize = IS_MOBILE and UDim2.fromOffset(400, 300) or UDim2.fromOffset(550, 380),
         TabSize = IS_MOBILE and 120 or 155,
         BackgroundImage = nil,
         BackgroundImageTransparency = 0.55,
@@ -1174,7 +1174,7 @@ local function CreateOptionRow(tab, title, description, contentSize)
         Position = UDim2.fromScale(0, 0.5),
         AnchorPoint = Vector2.new(0, 0.5),
         BackgroundTransparency = 1,
-        TextSize = 12,
+        TextSize = 11,
         ThemeTag = {
             OBJECTS = RootTheme,
             TextColor3 = "Colors.Text.Default",
@@ -1189,7 +1189,7 @@ local function CreateOptionRow(tab, title, description, contentSize)
         Position = UDim2.new(0, 10, 0, 13),
         BackgroundTransparency = 1,
         TextWrapped = true,
-        TextSize = 10,
+        TextSize = 9,
         RichText = true,
         ThemeTag = {
             OBJECTS = themeObj,
@@ -1205,7 +1205,7 @@ local function CreateOptionRow(tab, title, description, contentSize)
 
     local button = New("TextButton", "Option", {
         AutomaticSize = Enum.AutomaticSize.Y,
-        Size = UDim2.new(1, 0, 0, 26),
+        Size = UDim2.new(1, 0, 0, 24),
         AutoButtonColor = false,
         Text = "",
         ThemeTag = themeTag,
@@ -1221,11 +1221,11 @@ local function CreateOptionRow(tab, title, description, contentSize)
                     ListLayout = {
                         SortOrder = Enum.SortOrder.LayoutOrder,
                         VerticalAlignment = Enum.VerticalAlignment.Center,
-                        Padding = UDim.new(0, 2)
+                        Padding = UDim.new(0, 1)
                     },
                     Padding = {
-                        PaddingBottom = UDim.new(0, 6),
-                        PaddingTop = UDim.new(0, 6),
+                        PaddingBottom = UDim.new(0, 5),
+                        PaddingTop = UDim.new(0, 5),
                         PaddingLeft = UDim.new(0, 10),
                         PaddingRight = UDim.new(0, 8)
                     }
@@ -3284,7 +3284,7 @@ function WindowAPI:StartWindow(config)
         Visible = false
     })
     -- clip to window corners
-    local bgCorner = New("UICorner", bgImage, { CornerRadius = UDim.new(0, 12) })
+    local bgCorner = New("UICorner", bgImage, { CornerRadius = UDim.new(0, 8) })
 
     function WindowAPI:SetBackgroundImage(assetId)
         local normalized = NormalizeAssetId(assetId)
@@ -4119,9 +4119,9 @@ function Library:MakeWindow(config)
             BackgroundTransparency = "BackgroundTransparency"
         },
         Elements = {
-            Corner = UDim.new(0, 12),
+            Corner = UDim.new(0, 8),
             Stroke = {
-                Thickness = 1.2,
+                Thickness = 1,
                 ThemeTag = { Color = "Colors.Stroke" }
             },
             Gradient = {
@@ -4141,7 +4141,7 @@ function Library:MakeWindow(config)
             BackgroundColor3 = "Colors.Buttons.Default"
         },
         Elements = {
-            Corner = UDim.new(0, 12)
+            Corner = UDim.new(0, 8)
         }
     })
     local acrylicTint = New("Frame", acrylicLayer, {
@@ -4151,7 +4151,7 @@ function Library:MakeWindow(config)
             BackgroundColor3 = "Colors.Primary"
         },
         Elements = {
-            Corner = UDim.new(0, 12)
+            Corner = UDim.new(0, 8)
         }
     })
 
@@ -4178,7 +4178,7 @@ function Library:MakeWindow(config)
         Position = UDim2.new(0, 12, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
         Text = windowConfig.Title,
-        TextSize = 11,
+        TextSize = 12,
         BackgroundTransparency = 1,
         ThemeTag = {
             TextColor3 = "Colors.Text.Default",
@@ -4203,13 +4203,14 @@ function Library:MakeWindow(config)
         }
     })
 
-    -- Tags holder (center of topbar)
+    -- Tags holder (center topbar, small pills — redz clean)
     local tagsHolder = New("Frame", "Tags", topBar, {
-        Size = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(0, 0, 0, 18),
         AutomaticSize = Enum.AutomaticSize.X,
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
+        ZIndex = 11,
         Elements = {
             ListLayout = {
                 FillDirection = Enum.FillDirection.Horizontal,
@@ -4223,8 +4224,8 @@ function Library:MakeWindow(config)
     local buttons = New("Folder", "Buttons", topBar, {
         Childs = {
             New("ImageButton", "Close", {
-                Size = UDim2.new(0, 16, 0, 16),
-                Position = UDim2.new(1, -8, 0.5),
+                Size = UDim2.new(0, 18, 0, 18),
+                Position = UDim2.new(1, -10, 0.5),
                 AnchorPoint = Vector2.new(1, 0.5),
                 BackgroundTransparency = 1,
                 BackgroundColor3 = Color3.fromRGB(255, 35, 35),
@@ -4233,8 +4234,8 @@ function Library:MakeWindow(config)
                 Elements = { Corner = UDim.new(0.2, 0) }
             }),
             New("ImageButton", "Minimize", {
-                Size = UDim2.new(0, 16, 0, 16),
-                Position = UDim2.new(1, -30, 0.5),
+                Size = UDim2.new(0, 18, 0, 18),
+                Position = UDim2.new(1, -35, 0.5),
                 AnchorPoint = Vector2.new(1, 0.5),
                 BackgroundTransparency = 1,
                 BackgroundColor3 = Color3.new(1, 1, 1),
@@ -4567,7 +4568,7 @@ function Library:MakeWindow(config)
         window.BackgroundTransparency = themeT
     end
 
-    -- WindUI-style Tag (pill on topbar center — height 22, full radius, soft glass)
+    -- Tag (redz topbar, small WindUI-style pill — does NOT stretch topbar)
     local function TagTextColor(bg)
         local r, g, b = bg.R, bg.G, bg.B
         local lum = 0.299 * r + 0.587 * g + 0.114 * b
@@ -4584,61 +4585,61 @@ function Library:MakeWindow(config)
         end
         local textCol = TagTextColor(color)
 
+        -- outer shell (no ListLayout — only content holder has layout)
         local tag = New("Frame", tagsHolder, {
-            Size = UDim2.fromOffset(0, 22),
+            Size = UDim2.fromOffset(0, 18),
             AutomaticSize = Enum.AutomaticSize.X,
             BackgroundColor3 = color,
-            BackgroundTransparency = 0.12,
+            BackgroundTransparency = 0.2,
             Elements = {
-                Corner = UDim.new(1, 0),
-                Padding = {
-                    PaddingLeft = UDim.new(0, 10),
-                    PaddingRight = UDim.new(0, 10),
-                    PaddingTop = UDim.new(0, 0),
-                    PaddingBottom = UDim.new(0, 0)
-                },
-                ListLayout = {
-                    FillDirection = Enum.FillDirection.Horizontal,
-                    VerticalAlignment = Enum.VerticalAlignment.Center,
-                    Padding = UDim.new(0, 5)
-                }
+                Corner = UDim.new(0, 6)
             }
-        })
-
-        -- soft glass overlay (WindUI feel)
-        New("Frame", tag, {
-            Size = UDim2.fromScale(1, 1),
-            BackgroundColor3 = Color3.new(1, 1, 1),
-            BackgroundTransparency = 0.88,
-            ZIndex = 0,
-            Elements = { Corner = UDim.new(1, 0) }
-        })
-
-        local iconLabel = nil
-        if icon then
-            iconLabel = New("ImageLabel", tag, {
-                Size = UDim2.fromOffset(14, 14),
-                BackgroundTransparency = 1,
-                Image = NormalizeAssetId(icon) or "",
-                ImageColor3 = textCol,
-                ZIndex = 2
-            })
-        end
-
-        local label = New("TextLabel", tag, {
-            AutomaticSize = Enum.AutomaticSize.XY,
-            BackgroundTransparency = 1,
-            Text = text,
-            TextSize = 11,
-            TextColor3 = textCol,
-            Font = Enum.Font.GothamBold,
-            ZIndex = 2
         })
 
         New("UIStroke", tag, {
             Thickness = 1,
             Color = color,
             Transparency = 0.55
+        })
+
+        -- content row
+        local content = New("Frame", tag, {
+            Size = UDim2.fromScale(1, 1),
+            AutomaticSize = Enum.AutomaticSize.X,
+            BackgroundTransparency = 1,
+            ZIndex = 2,
+            Elements = {
+                Padding = {
+                    PaddingLeft = UDim.new(0, 8),
+                    PaddingRight = UDim.new(0, 8),
+                    PaddingTop = UDim.new(0, 2),
+                    PaddingBottom = UDim.new(0, 2)
+                },
+                ListLayout = {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    VerticalAlignment = Enum.VerticalAlignment.Center,
+                    Padding = UDim.new(0, 4)
+                }
+            }
+        })
+
+        local iconLabel = nil
+        if icon then
+            iconLabel = New("ImageLabel", content, {
+                Size = UDim2.fromOffset(12, 12),
+                BackgroundTransparency = 1,
+                Image = NormalizeAssetId(icon) or "",
+                ImageColor3 = textCol
+            })
+        end
+
+        local label = New("TextLabel", content, {
+            AutomaticSize = Enum.AutomaticSize.XY,
+            BackgroundTransparency = 1,
+            Text = text,
+            TextSize = 10,
+            TextColor3 = textCol,
+            Font = Enum.Font.GothamBold
         })
 
         return {
@@ -4659,12 +4660,11 @@ function Library:MakeWindow(config)
             SetIcon = function(_, ic)
                 if iconLabel then iconLabel:Destroy() iconLabel = nil end
                 if ic then
-                    iconLabel = New("ImageLabel", tag, {
-                        Size = UDim2.fromOffset(14, 14),
+                    iconLabel = New("ImageLabel", content, {
+                        Size = UDim2.fromOffset(12, 12),
                         BackgroundTransparency = 1,
                         Image = NormalizeAssetId(ic) or "",
-                        ImageColor3 = label.TextColor3,
-                        ZIndex = 2
+                        ImageColor3 = label.TextColor3
                     })
                 end
             end,
@@ -4673,7 +4673,6 @@ function Library:MakeWindow(config)
             end
         }
     end
-    -- alias WindUI naming
     api.Tag = api.AddTag
 
     api:StartWindow({
