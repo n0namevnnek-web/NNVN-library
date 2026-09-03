@@ -1,3 +1,28 @@
+--[[
+    NNVN Hub UI Library
+    ==================
+    • Default size: 700x420
+    • Notifications: bottom-left
+    • Open button icon: rbxassetid://138952058031836
+    • Language: vi (default) / en
+    • Window controls: Minimize (–) | Maximize (□) | Close (×)
+    • Bottom drag bar to move UI
+    • Corner resize handle (thu phóng)
+    • FuncsV3 helper: Toggle / Button / Dropdown / Textbox + SaveConfig
+
+    Usage:
+      local Library = loadstring(...)()
+      local Window = Library:CreateWindow({
+          Title = "NNVN Hub",
+          Description = "v1.0",
+          Language = "vi",
+          SizeUi = UDim2.fromOffset(700, 420)
+      })
+      Library:SetLanguage("en")
+      local F = Library.FuncsV3
+      F:SetTable(mySaveTable)
+]]
+
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -7,6 +32,37 @@ local VirtualUser = game:GetService("VirtualUser")
 
 local Custom = {} do
   Custom.ColorRGB = Color3.fromRGB(250, 7, 7)
+
+  -- Language System
+  Custom.Language = "vi" -- "vi" or "en"
+  
+  Custom.Translations = {
+    en = {
+      Search = "Search",
+      WriteInput = "Write your input there",
+      SelectOptions = "Select Options",
+      Close = "X",
+      Minimize = "-",
+    },
+    vi = {
+      Search = "Tìm kiếm",
+      WriteInput = "Nhập nội dung tại đây",
+      SelectOptions = "Chọn tùy chọn",
+      Close = "X",
+      Minimize = "-",
+    }
+  }
+  
+  function Custom:T(key)
+    local lang = Custom.Translations[Custom.Language] or Custom.Translations["vi"]
+    return lang[key] or key
+  end
+  
+  function Custom:SetLanguage(lang)
+    if lang == "vi" or lang == "en" then
+      Custom.Language = lang
+    end
+  end
 
   function Custom:Create(Name, Properties, Parent)
     local _instance = Instance.new(Name)
@@ -44,7 +100,7 @@ local function OpenClose()
     BackgroundTransparency = 1,
     Position = UDim2.new(0.1021, 0, 0.0743, 0),
     Size = UDim2.new(0, 59, 0, 49),
-    Image = "rbxassetid://136890595976124",
+    Image = "rbxassetid://138952058031836",
     Visible = false,
   }, ScreenGui)
 
@@ -155,11 +211,11 @@ function CircleClick(Button, X, Y)
 	end)
 end
 
-local Speed_Library, Notification = {}, {}
+local NNVN_Hub, Notification = {}, {}
 
-Speed_Library.Unloaded = false
+NNVN_Hub.Unloaded = false
 
-function Speed_Library:SetNotification(Config)
+function NNVN_Hub:SetNotification(Config)
   local Title = Config[1] or Config.Title or ""
   local Description = Config[2] or Config.Description or ""
 	local Content = Config[3] or Config.Content or ""
@@ -171,12 +227,12 @@ function Speed_Library:SetNotification(Config)
   }, RunService:IsStudio() and Player.PlayerGui or (gethui() or cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")))
 
   local NotificationLayout = Custom:Create("Frame", {
-    AnchorPoint = Vector2.new(1, 1),
+    AnchorPoint = Vector2.new(0, 1),
     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
     BackgroundTransparency = 0.999,
     BorderColor3 = Color3.fromRGB(0, 0, 0),
     BorderSizePixel = 0,
-    Position = UDim2.new(1, -30, 1, -30),
+    Position = UDim2.new(0, 30, 1, -30),
     Size = UDim2.new(0, 320, 1, 0),
     Name = "NotificationLayout"
   }, NotificationGui)
@@ -215,7 +271,7 @@ function Speed_Library:SetNotification(Config)
     BackgroundColor3 = Color3.fromRGB(0, 0, 0),
     BorderColor3 = Color3.fromRGB(0, 0, 0),
     BorderSizePixel = 0,
-    Position = UDim2.new(0, 400, 0, 0),
+    Position = UDim2.new(0, -400, 0, 0),
     Size = UDim2.new(1, 0, 1, 0),
     Name = "NotificationFrameReal"
   }, NotificationFrame)
@@ -354,7 +410,7 @@ function Speed_Library:SetNotification(Config)
     if Waitted then return false end
     Waitted = true
 
-    local tween = TweenService:Create(NotificationFrameReal,TweenInfo.new(tonumber(Time), Enum.EasingStyle.Back, Enum.EasingDirection.InOut),{Position = UDim2.new(0, 400, 0, 0)})
+    local tween = TweenService:Create(NotificationFrameReal,TweenInfo.new(tonumber(Time), Enum.EasingStyle.Back, Enum.EasingDirection.InOut),{Position = UDim2.new(0, -400, 0, 0)})
     tween:Play()
 
     task.wait(tonumber(Time) / 1.2)
@@ -375,26 +431,46 @@ function Speed_Library:SetNotification(Config)
   return Notification
 end
 
-function Speed_Library:CreateWindow(Config)
-  local Title = Config[1] or Config.Title or ""
-  local Description = Config[2] or Config.Description or ""
-  local TabWidth = Config[3] or Config["Tab Width"] or 120
-  local SizeUi = Config[4] or Config.SizeUi or UDim2.fromOffset(550, 315)
+function NNVN_Hub:CreateWindow(Config)
+  local Title = Config[1] or Config.Title or "NNVN Hub"
+  local Description = Config[2] or Config.Description or "v1.0"
+  local TabWidth = Config[3] or Config["Tab Width"] or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled and 90 or 130)
+  local Language = Config.Language or Config[5] or "vi"
+  Custom:SetLanguage(Language)
+
+  -- Mobile detection → UI nhỏ hơn
+  local IsMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+  if not IsMobile then
+    -- một số máy tính bảng chỉ TouchEnabled
+    local cam = workspace.CurrentCamera
+    if cam and cam.ViewportSize.X < 700 then
+      IsMobile = true
+    end
+  end
+
+  local DefaultSize = IsMobile and UDim2.fromOffset(340, 280) or UDim2.fromOffset(700, 420)
+  local SizeUi = Config[4] or Config.SizeUi or DefaultSize
+
+  local WindowMinSize = Config.MinSize or (IsMobile and Vector2.new(280, 220) or Vector2.new(480, 300))
+  local WindowMaxSize = Config.MaxSize or (IsMobile and Vector2.new(500, 400) or Vector2.new(1000, 650))
+  local DefaultTabWidth = IsMobile and 90 or 130
+
 
   local Funcs = {}
 
-  local SpeedHubXGui = Custom:Create("ScreenGui", {
+  local NNVNHubGui = Custom:Create("ScreenGui", {
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling
   }, RunService:IsStudio() and Player.PlayerGui or (gethui() or cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")))
 
   local DropShadowHolder = Custom:Create("Frame", {
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
-    Size = UDim2.new(0, 455, 0, 350),
+    Size = SizeUi,
     ZIndex = 0,
     Name = "DropShadowHolder",
-    Position = UDim2.new(0, (SpeedHubXGui.AbsoluteSize.X // 2 - 455 // 2), 0, (SpeedHubXGui.AbsoluteSize.Y // 2 - 350 // 2))
-  }, SpeedHubXGui)
+    Position = UDim2.new(0.5, -SizeUi.X.Offset // 2, 0.5, -SizeUi.Y.Offset // 2),
+    AnchorPoint = Vector2.new(0.5, 0.5)
+  }, NNVNHubGui)
 
   local DropShadow = Custom:Create("ImageLabel", {
     Image = "",
@@ -448,7 +524,7 @@ function Speed_Library:CreateWindow(Config)
     BackgroundTransparency = 0.9990000128746033,
     BorderColor3 = Color3.fromRGB(0, 0, 0),
     BorderSizePixel = 0,
-    Size = UDim2.new(1, -100, 1, 0),
+    Size = UDim2.new(1, -120, 1, 0),
     Position = UDim2.new(0, 10, 0, 0)
   }, Top)
 
@@ -464,7 +540,7 @@ function Speed_Library:CreateWindow(Config)
     BackgroundTransparency = 0.9990000128746033,
     BorderColor3 = Color3.fromRGB(0, 0, 0),
     BorderSizePixel = 0,
-    Size = UDim2.new(1, -(TextLabel.TextBounds.X + 104), 1, 0),
+    Size = UDim2.new(1, -(TextLabel.TextBounds.X + 130), 1, 0),
     Position = UDim2.new(0, TextLabel.TextBounds.X + 15, 0, 0)
   }, Top)
 
@@ -473,35 +549,50 @@ function Speed_Library:CreateWindow(Config)
     Thickness = 0.4
   }, TextLabel1)
 
-  local Close = Custom:Create("TextButton", {
-    Font = Enum.Font.SourceSans,
-    Text = "X",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    TextSize = 18,
-    AnchorPoint = Vector2.new(1, 0.5),
-    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-    BackgroundTransparency = 0.9990000128746033,
-    BorderColor3 = Color3.fromRGB(0, 0, 0),
-    BorderSizePixel = 0,
-    Position = UDim2.new(1, -8, 0.5, 0),
-    Size = UDim2.new(0, 25, 0, 25),
-    Name = "Close"
-  }, Top)
+  -- Lucide icons (https://lucide.dev)
+  -- maximize | minimize | minus | x
+  local Lucide = {
+    Maximize = "rbxassetid://7733992982",  -- lucide: maximize
+    Minimize = "rbxassetid://7733997941",  -- lucide: minimize
+    Minus    = "rbxassetid://7734000129",  -- lucide: minus
+    X        = "rbxassetid://7743878857",  -- lucide: x
+  }
 
-  local Min = Custom:Create("TextButton", {
-    Font = Enum.Font.SourceSans,
-    Text = "-", 
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    TextSize = 18,
-    AnchorPoint = Vector2.new(1, 0.5),
-    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-    BackgroundTransparency = 0.9990000128746033,
-    BorderColor3 = Color3.fromRGB(0, 0, 0),
-    BorderSizePixel = 0,
-    Position = UDim2.new(1, -42, 0.5, 0),
-    Size = UDim2.new(0, 25, 0, 25),
-    Name = "Min"
-}, Top)
+  local function MakeWinBtn(Name, IconId, PosX, BgColor, BgTrans)
+    local Btn = Custom:Create("TextButton", {
+      Text = "",
+      AnchorPoint = Vector2.new(1, 0.5),
+      BackgroundColor3 = BgColor,
+      BackgroundTransparency = BgTrans,
+      BorderSizePixel = 0,
+      Position = UDim2.new(1, PosX, 0.5, 0),
+      Size = UDim2.new(0, 28, 0, 22),
+      Name = Name,
+      AutoButtonColor = false,
+    }, Top)
+    Custom:Create("UICorner", {CornerRadius = UDim.new(0, 4)}, Btn)
+    local Img = Custom:Create("ImageLabel", {
+      BackgroundTransparency = 1,
+      Image = IconId,
+      ImageColor3 = Color3.fromRGB(255, 255, 255),
+      Size = UDim2.new(0, 14, 0, 14),
+      Position = UDim2.new(0.5, 0, 0.5, 0),
+      AnchorPoint = Vector2.new(0.5, 0.5),
+      ScaleType = Enum.ScaleType.Fit,
+      Name = "Icon",
+    }, Btn)
+    Btn.MouseEnter:Connect(function()
+      TweenService:Create(Btn, TweenInfo.new(0.12), {BackgroundTransparency = math.max(0, BgTrans - 0.25)}):Play()
+    end)
+    Btn.MouseLeave:Connect(function()
+      TweenService:Create(Btn, TweenInfo.new(0.12), {BackgroundTransparency = BgTrans}):Play()
+    end)
+    return Btn, Img
+  end
+
+  local Close, CloseIcon = MakeWinBtn("Close", Lucide.X, -8, Color3.fromRGB(232, 17, 35), 0.15)
+  local Max, MaxIcon = MakeWinBtn("Max", Lucide.Maximize, -40, Color3.fromRGB(50, 50, 50), 0.35)
+  local Min, MinIcon = MakeWinBtn("Min", Lucide.Minus, -72, Color3.fromRGB(50, 50, 50), 0.35)
 
   local LayersTab = Custom:Create("Frame", {
     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -614,10 +705,17 @@ function Speed_Library:CreateWindow(Config)
   ScrollTab.ChildAdded:Connect(UpdateSize)
   ScrollTab.ChildRemoved:Connect(UpdateSize)
 
+  -- Window state
+  local IsMaximized = false
+  local SavedPos = DropShadowHolder.Position
+  local SavedSize = SizeUi
+  local MinSize = WindowMinSize
+  local MaxSize = WindowMaxSize
+  local CanResize = true
+
   Min.Activated:Connect(function()
 		CircleClick(Min, Player:GetMouse().X, Player:GetMouse().Y)
 		DropShadowHolder.Visible = false
-
 		if not Open_Close.Visible then Open_Close.Visible = true end
 	end)
 
@@ -628,13 +726,174 @@ function Speed_Library:CreateWindow(Config)
 
   Close.Activated:Connect(function()
 		CircleClick(Close, Player:GetMouse().X, Player:GetMouse().Y)
-    if SpeedHubXGui then SpeedHubXGui:Destroy() end
-		if not Speed_Library.Unloaded then Speed_Library.Unloaded = true end
+    if NNVNHubGui then NNVNHubGui:Destroy() end
+		if not NNVN_Hub.Unloaded then NNVN_Hub.Unloaded = true end
 	end)
 
-  DropShadowHolder.Size = UDim2.new(0, 115 + TextLabel.TextBounds.X + 1 + TextLabel1.TextBounds.X, 0, 350)
-	MakeDraggable(Top, DropShadowHolder)
+  -- Maximize / Restore
+  local function ToggleMaximize()
+    CircleClick(Max, Player:GetMouse().X, Player:GetMouse().Y)
+    if not IsMaximized then
+      SavedPos = DropShadowHolder.Position
+      SavedSize = DropShadow.Size
+      local cam = workspace.CurrentCamera
+      local vs = cam and cam.ViewportSize or Vector2.new(1280, 720)
+      local tw = math.min(vs.X - 40, MaxSize.X)
+      local th = math.min(vs.Y - 80, MaxSize.Y)
+      local targetSize = UDim2.fromOffset(tw, th)
+      local targetPos = UDim2.new(0, (vs.X - tw) / 2, 0, (vs.Y - th) / 2)
+      TweenService:Create(DropShadow, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+      TweenService:Create(Main, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+      TweenService:Create(DropShadowHolder, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+        Size = targetSize,
+        Position = targetPos
+      }):Play()
+      MaxIcon.Image = Lucide.Minimize  -- lucide: minimize when maximized
+      IsMaximized = true
+      CanResize = false
+    else
+      TweenService:Create(DropShadow, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = SavedSize}):Play()
+      TweenService:Create(Main, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = SavedSize}):Play()
+      TweenService:Create(DropShadowHolder, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+        Size = SavedSize,
+        Position = SavedPos
+      }):Play()
+      MaxIcon.Image = Lucide.Maximize  -- lucide: maximize when restored
+      IsMaximized = false
+      CanResize = true
+    end
+  end
+  Max.Activated:Connect(ToggleMaximize)
 
+  -- Keep DropShadowHolder sized to actual UI (not title-width hack)
+  DropShadowHolder.Size = SizeUi
+  MakeDraggable(Top, DropShadowHolder)
+
+  -- /// Bottom drag bar (thanh kéo dài ở dưới)
+  local BottomBar = Custom:Create("Frame", {
+    AnchorPoint = Vector2.new(0.5, 1),
+    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+    BackgroundTransparency = 0.85,
+    BorderSizePixel = 0,
+    Position = UDim2.new(0.5, 0, 1, -6),
+    Size = UDim2.new(0, 120, 0, 5),
+    Name = "BottomBar",
+    ZIndex = 5,
+  }, Main)
+  Custom:Create("UICorner", {CornerRadius = UDim.new(1, 0)}, BottomBar)
+
+  local BottomBarHit = Custom:Create("TextButton", {
+    Text = "",
+    BackgroundTransparency = 1,
+    Size = UDim2.new(1, 40, 1, 16),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    ZIndex = 6,
+    Name = "BottomBarHit"
+  }, BottomBar)
+
+  -- Hover effect
+  BottomBarHit.MouseEnter:Connect(function()
+    TweenService:Create(BottomBar, TweenInfo.new(0.15), {
+      BackgroundTransparency = 0.4,
+      Size = UDim2.new(0, 160, 0, 5)
+    }):Play()
+  end)
+  BottomBarHit.MouseLeave:Connect(function()
+    if not BottomBarHit:GetAttribute("Dragging") then
+      TweenService:Create(BottomBar, TweenInfo.new(0.2), {
+        BackgroundTransparency = 0.85,
+        Size = UDim2.new(0, 120, 0, 5)
+      }):Play()
+    end
+  end)
+
+  -- Drag via bottom bar
+  do
+    local dragging, dragStart, startPos = false, nil, nil
+    BottomBarHit.InputBegan:Connect(function(input)
+      if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        BottomBarHit:SetAttribute("Dragging", true)
+        dragStart = input.Position
+        startPos = DropShadowHolder.Position
+        TweenService:Create(BottomBar, TweenInfo.new(0.1), {BackgroundTransparency = 0.25, BackgroundColor3 = Custom.ColorRGB}):Play()
+        input.Changed:Connect(function()
+          if input.UserInputState == Enum.UserInputState.End then
+            dragging = false
+            BottomBarHit:SetAttribute("Dragging", false)
+            TweenService:Create(BottomBar, TweenInfo.new(0.2), {
+              BackgroundTransparency = 0.85,
+              BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+              Size = UDim2.new(0, 120, 0, 5)
+            }):Play()
+          end
+        end)
+      end
+    end)
+    BottomBarHit.InputChanged:Connect(function(input)
+      if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        DropShadowHolder.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+      end
+    end)
+  end
+
+  -- /// Resize handle (góc dưới phải — thu phóng)
+  local ResizeHandle = Custom:Create("Frame", {
+    AnchorPoint = Vector2.new(1, 1),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    Position = UDim2.new(1, 0, 1, 0),
+    Size = UDim2.new(0, 22, 0, 22),
+    Name = "ResizeHandle",
+    ZIndex = 10,
+  }, Main)
+
+  local ResizeIcon = Custom:Create("ImageLabel", {
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://7733992901", -- lucide: maximize-2 (resize corner)
+    ImageColor3 = Color3.fromRGB(180, 180, 180),
+    ImageTransparency = 0.5,
+    Size = UDim2.new(0, 14, 0, 14),
+    Position = UDim2.new(1, -16, 1, -16),
+    Name = "ResizeIcon",
+    ZIndex = 11,
+  }, ResizeHandle)
+
+  do
+    local resizing = false
+    local startInput, startSize
+    ResizeHandle.InputBegan:Connect(function(input)
+      if not CanResize then return end
+      if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        resizing = true
+        startInput = input.Position
+        startSize = DropShadow.AbsoluteSize
+        TweenService:Create(ResizeIcon, TweenInfo.new(0.1), {ImageTransparency = 0.1, ImageColor3 = Custom.ColorRGB}):Play()
+        input.Changed:Connect(function()
+          if input.UserInputState == Enum.UserInputState.End then
+            resizing = false
+            TweenService:Create(ResizeIcon, TweenInfo.new(0.15), {ImageTransparency = 0.5, ImageColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+          end
+        end)
+      end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+      if resizing and CanResize and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - startInput
+        local newW = math.clamp(startSize.X + delta.X, MinSize.X, MaxSize.X)
+        local newH = math.clamp(startSize.Y + delta.Y, MinSize.Y, MaxSize.Y)
+        local newSize = UDim2.fromOffset(newW, newH)
+        DropShadow.Size = newSize
+        Main.Size = newSize
+        DropShadowHolder.Size = newSize
+        if not IsMaximized then
+          SavedSize = newSize
+        end
+      end
+    end)
+  end
 
   -- /// Blur
 
@@ -846,17 +1105,17 @@ function Speed_Library:CreateWindow(Config)
       NameTab.Text = _Name
   
       local ChooseFrame = Custom:Create("Frame", {
-        BackgroundColor3 = Custom.ColorRGB,
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
         BorderColor3 = Color3.fromRGB(0, 0, 0),
         BorderSizePixel = 0,
         Position = UDim2.new(0, 2, 0, 9),
-        Size = UDim2.new(0, 1, 0, 12),
+        Size = UDim2.new(0, 2, 0, 12),
         Name = "ChooseFrame",
       }, Tab)
   
       Custom:Create("UIStroke", {
-        Color = Custom.ColorRGB,
-        Thickness = 1.6,
+        Color = Color3.fromRGB(255, 255, 255),
+        Thickness = 1.2,
       }, ChooseFrame)
   
       Custom:Create("UICorner", {}, ChooseFrame)
@@ -1804,7 +2063,7 @@ function Speed_Library:CreateWindow(Config)
           CursorPosition = -1,
           Font = Enum.Font.GothamBold,
           PlaceholderColor3 = Color3.fromRGB(120, 120, 120),
-          PlaceholderText = "Write your input there",
+          PlaceholderText = Custom:T("WriteInput"),
           Text = "",
           TextColor3 = Color3.fromRGB(255, 255, 255),
           TextSize = 12,
@@ -2007,7 +2266,7 @@ function Speed_Library:CreateWindow(Config)
 
         local SearchBar = Custom:Create("TextBox", {
           Font = Enum.Font.GothamBold,
-          PlaceholderText = "Search",
+          PlaceholderText = Custom:T("Search"),
           PlaceholderColor3 = Color3.fromRGB(120, 120, 120),
           Text = "",
           TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -2040,7 +2299,7 @@ function Speed_Library:CreateWindow(Config)
             if DropFrame.Name == "Option" then
               Funcs_Dropdown.Value = {}
               Funcs_Dropdown.Options = {}
-              OptionSelecting.Text = "Select Options"
+              OptionSelecting.Text = Custom:T("SelectOptions")
               DropFrame:Destroy()
             end
           end
@@ -2065,7 +2324,7 @@ function Speed_Library:CreateWindow(Config)
           end
         
           local DropdownValueTable = table.concat(Funcs_Dropdown.Value, ", ")
-          OptionSelecting.Text = DropdownValueTable ~= "" and DropdownValueTable or "Select Options"
+          OptionSelecting.Text = DropdownValueTable ~= "" and DropdownValueTable or Custom:T("SelectOptions")
           Callback(Funcs_Dropdown.Value)
         end
 
@@ -2206,8 +2465,115 @@ function Speed_Library:CreateWindow(Config)
     return Sections
   end
 
+  -- Language switcher helper
+  function Tabs:SetLanguage(lang)
+    Custom:SetLanguage(lang)
+  end
+
   return Tabs
 end
 
+-- Global language setter
+function NNVN_Hub:SetLanguage(lang)
+  Custom:SetLanguage(lang)
+end
 
-return Speed_Library
+-- ============================================================
+-- FuncsV3 Helper (Toggle / Button / Dropdown / Textbox + Save)
+-- ============================================================
+local FuncsV3 = {}
+local SaveConfig = nil
+
+local function Checker(Val, Val1, Val2)
+  return typeof(Val) == Val1 and Val or Val2
+end
+
+function FuncsV3:SetTable(path)
+  SaveConfig = path
+end
+
+function FuncsV3:Toggle(Tab, Name, Content, Default, Callback)
+  Name = Checker(Name, "string", tostring(Name))
+  Content = Checker(Content, "string", tostring(Content))
+  Callback = Checker(Callback, "function", function() end)
+
+  local _default = Default == "Save"
+    and Checker(SaveConfig and SaveConfig[Name], "boolean", false)
+    or Checker(Default, "boolean", false)
+
+  return Tab:AddToggle({
+    Title = Name,
+    Content = Content,
+    Default = _default,
+    Callback = Callback
+  })
+end
+
+function FuncsV3:Button(Tab, Name, Content, Callback)
+  Name = Checker(Name, "string", tostring(Name))
+  Content = Checker(Content, "string", tostring(Content))
+  Callback = Checker(Callback, "function", function() end)
+
+  return Tab:AddButton({
+    Title = Name,
+    Content = Content,
+    Icon = "rbxassetid://16932740082",
+    Callback = Callback
+  })
+end
+
+function FuncsV3:Dropdown(Tab, Name, Content, multi, options, Default, Callback)
+  Name = Checker(Name, "string", tostring(Name))
+  Content = Checker(Content, "string", tostring(Content))
+  multi = Checker(multi, "boolean", false)
+  options = Checker(options, "table", { "" })
+  Callback = Checker(Callback, "function", function() end)
+
+  local _default
+  if Default == "Save" then
+    if SaveConfig and type(SaveConfig[Name]) == "table" then
+      _default = SaveConfig[Name] or {""}
+    else
+      _default = {(SaveConfig and SaveConfig[Name]) or ""}
+    end
+  else
+    local src = (SaveConfig and SaveConfig[Name]) or Default
+    if type(src) == "table" then
+      _default = src
+    else
+      _default = {src or ""}
+    end
+  end
+
+  return Tab:AddDropdown({
+    Title = Name,
+    Content = Content,
+    Multi = multi,
+    Options = options,
+    Default = _default,
+    Callback = Callback
+  })
+end
+
+function FuncsV3:Textbox(Tab, Name, Content, Default, Callback)
+  Name = Checker(Name, "string", tostring(Name))
+  Content = Checker(Content, "string", tostring(Content))
+  Callback = Checker(Callback, "function", function() end)
+
+  local _default = Default == "Save"
+    and Checker(SaveConfig and SaveConfig[Name], "string", "")
+    or Checker(Default, "string", "")
+
+  return Tab:AddInput({
+    Title = Name,
+    Content = Content,
+    Default = _default,
+    Callback = Callback
+  })
+end
+
+NNVN_Hub.FuncsV3 = FuncsV3
+
+if getgenv then getgenv().NNVN_Hub = NNVN_Hub end
+_G.NNVN_Hub = NNVN_Hub
+return NNVN_Hub
