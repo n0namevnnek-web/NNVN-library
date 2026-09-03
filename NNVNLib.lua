@@ -1,7 +1,7 @@
 --[[
     NNVN Lib - Modern Roblox UI Library
-    Version: 1.3.0
-    Compact · Smooth · Sharp · Multi-Language · Mobile · Color Themes
+    Version: 1.4.0
+    Compact · Themes · ProgressBar · Colorpicker · Tooltip · Tag · Acrylic
 
     Features:
     - Compact size + auto smaller on Mobile
@@ -337,7 +337,7 @@ local Languages = {
 
 local Library = {
     Information = {
-        Version = "v1.3.0",
+        Version = "v1.4.0",
         Name = "NNVN Lib",
         GitHubOwner = "NNVN"
     },
@@ -2498,6 +2498,353 @@ function TabAPI:AddParagraph(title, description)
     }, Option)
 end
 
+--------------------------------------------------------------------
+-- ProgressBar
+--------------------------------------------------------------------
+function TabAPI:AddProgressBar(config)
+    config = type(config) == "table" and config or {}
+    local title = config[1] or config.Name or config.Title or "Progress"
+    local desc = config.Desc or config.Description or ""
+    local min = config.Min or 0
+    local max = config.Max or 100
+    local value = config.Default or config.Value or min
+    local showValue = config.ShowValue ~= false
+
+    local themeObj = TabThemes[self]
+    local button, titleLabel, descLabel = CreateOptionRow(self, title, desc, UDim2.new(0.45, 0, 0, 0))
+
+    local holder = New("Frame", button, {
+        Size = UDim2.new(0.52, 0, 0, 14),
+        Position = UDim2.new(1, -8, 0.5, 0),
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 1
+    })
+
+    local track = New("Frame", holder, {
+        Size = UDim2.new(1, showValue and -36 or 0, 0, 6),
+        Position = UDim2.fromScale(0, 0.5),
+        AnchorPoint = Vector2.new(0, 0.5),
+        ThemeTag = {
+            OBJECTS = themeObj,
+            BackgroundColor3 = "Colors.Stroke"
+        },
+        Elements = { Corner = UDim.new(1, 0) }
+    })
+
+    local fill = New("Frame", track, {
+        Size = UDim2.fromScale(0, 1),
+        BorderSizePixel = 0,
+        ThemeTag = {
+            OBJECTS = themeObj,
+            BackgroundColor3 = "Colors.Primary"
+        },
+        Elements = { Corner = UDim.new(1, 0) }
+    })
+
+    local valueLabel = New("TextLabel", holder, {
+        Size = UDim2.new(0, 32, 1, 0),
+        Position = UDim2.new(1, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 1,
+        TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Visible = showValue,
+        ThemeTag = {
+            OBJECTS = themeObj,
+            TextColor3 = "Colors.Text.Dark",
+            Font = "Font.Bold"
+        }
+    })
+
+    local bar = setmetatable({
+        Min = min,
+        Max = max,
+        Value = value,
+        DESTROY_ELEMENT = button,
+        VISIBLE_ELEMENT = button,
+        TITLE_LABEL = titleLabel,
+        DESCRIPTION_LABEL = descLabel,
+        Title = title,
+        Kind = "ProgressBar",
+        Parent = self
+    }, Option)
+
+    function bar:SetValue(v)
+        v = math.clamp(tonumber(v) or self.Min, self.Min, self.Max)
+        self.Value = v
+        local ratio = (self.Max == self.Min) and 1 or ((v - self.Min) / (self.Max - self.Min))
+        CreateTween(fill, "Size", UDim2.fromScale(ratio, 1), 0.2):Play()
+        if showValue then
+            valueLabel.Text = tostring(math.floor(ratio * 100)) .. "%"
+        end
+    end
+
+    bar:SetValue(value)
+    return bar
+end
+
+--------------------------------------------------------------------
+-- Colorpicker (simple R/G/B + preview)
+--------------------------------------------------------------------
+function TabAPI:AddColorpicker(config)
+    config = type(config) == "table" and config or {}
+    local title = config[1] or config.Name or config.Title or "Color"
+    local desc = config.Desc or config.Description or ""
+    local default = config.Default or config.Color or Color3.fromRGB(99, 102, 241)
+    if typeof(default) ~= "Color3" then
+        default = Color3.fromRGB(99, 102, 241)
+    end
+    local callbacks = PackCallback(config.Callback or config[2])
+    local flag = config.Flag
+
+    local themeObj = TabThemes[self]
+    local button, titleLabel, descLabel = CreateOptionRow(self, title, desc, UDim2.new(1, -90, 0, 0))
+
+    local preview = New("TextButton", button, {
+        Size = UDim2.fromOffset(28, 16),
+        Position = UDim2.new(1, -8, 0.5, 0),
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = default,
+        AutoButtonColor = false,
+        Text = "",
+        Elements = {
+            Corner = UDim.new(0, 4),
+            Stroke = {
+                Thickness = 1,
+                ThemeTag = { Color = "Colors.Stroke" }
+            }
+        }
+    })
+
+    -- Expand panel (hidden)
+    local panel = New("Frame", button, {
+        Size = UDim2.new(1, -16, 0, 0),
+        Position = UDim2.new(0, 8, 1, 0),
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        Visible = false
+    })
+
+    local function makeChannel(name, order, init)
+        local row = New("Frame", panel, {
+            Size = UDim2.new(1, 0, 0, 18),
+            Position = UDim2.new(0, 0, 0, (order - 1) * 20),
+            BackgroundTransparency = 1
+        })
+        New("TextLabel", row, {
+            Size = UDim2.new(0, 14, 1, 0),
+            BackgroundTransparency = 1,
+            Text = name,
+            TextSize = 10,
+            ThemeTag = {
+                OBJECTS = themeObj,
+                TextColor3 = "Colors.Text.Dark",
+                Font = "Font.Bold"
+            }
+        })
+        local track = New("TextButton", row, {
+            Size = UDim2.new(1, -50, 0, 6),
+            Position = UDim2.new(0, 18, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            AutoButtonColor = false,
+            Text = "",
+            ThemeTag = {
+                OBJECTS = themeObj,
+                BackgroundColor3 = "Colors.Stroke"
+            },
+            Elements = { Corner = UDim.new(1, 0) }
+        })
+        local fill = New("Frame", track, {
+            Size = UDim2.fromScale(init, 1),
+            ThemeTag = {
+                OBJECTS = themeObj,
+                BackgroundColor3 = "Colors.Primary"
+            },
+            Elements = { Corner = UDim.new(1, 0) }
+        })
+        local num = New("TextLabel", row, {
+            Size = UDim2.new(0, 28, 1, 0),
+            Position = UDim2.new(1, 0, 0, 0),
+            AnchorPoint = Vector2.new(1, 0),
+            BackgroundTransparency = 1,
+            TextSize = 9,
+            Text = tostring(math.floor(init * 255)),
+            ThemeTag = {
+                OBJECTS = themeObj,
+                TextColor3 = "Colors.Text.Dark",
+                Font = "Font.Medium"
+            }
+        })
+        return track, fill, num
+    end
+
+    local r, g, b = default.R, default.G, default.B
+    local rTrack, rFill, rNum = makeChannel("R", 1, r)
+    local gTrack, gFill, gNum = makeChannel("G", 2, g)
+    local bTrack, bFill, bNum = makeChannel("B", 3, b)
+
+    local opened = false
+    local colorObj = setmetatable({
+        Color = default,
+        Value = default,
+        DESTROY_ELEMENT = button,
+        VISIBLE_ELEMENT = button,
+        TITLE_LABEL = titleLabel,
+        DESCRIPTION_LABEL = descLabel,
+        CALLBACKS = callbacks,
+        Title = title,
+        Kind = "Colorpicker",
+        Parent = self
+    }, Option)
+
+    local function applyColor(nr, ng, nb, fire)
+        r, g, b = nr, ng, nb
+        local c = Color3.new(r, g, b)
+        colorObj.Color = c
+        colorObj.Value = c
+        preview.BackgroundColor3 = c
+        rFill.Size = UDim2.fromScale(r, 1)
+        gFill.Size = UDim2.fromScale(g, 1)
+        bFill.Size = UDim2.fromScale(b, 1)
+        rNum.Text = tostring(math.floor(r * 255))
+        gNum.Text = tostring(math.floor(g * 255))
+        bNum.Text = tostring(math.floor(b * 255))
+        if flag and FlagsTable then FlagsTable[flag] = { r, g, b } end
+        if fire then FireCallbacks(callbacks, c) end
+    end
+
+    local function bindTrack(track, getter, setter)
+        Connect(track.MouseButton1Down, function()
+            if isDragging then return end
+            isDragging = true
+            while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                local pos = track.AbsolutePosition
+                local size = track.AbsoluteSize
+                local ratio = math.clamp((Mouse.X - pos.X) / math.max(size.X, 1), 0, 1)
+                local nr, ng, nb = r, g, b
+                if getter == "r" then nr = ratio
+                elseif getter == "g" then ng = ratio
+                else nb = ratio end
+                applyColor(nr, ng, nb, true)
+                task.wait()
+            end
+            isDragging = false
+        end)
+    end
+    bindTrack(rTrack, "r")
+    bindTrack(gTrack, "g")
+    bindTrack(bTrack, "b")
+
+    function colorObj:SetValue(c)
+        if typeof(c) ~= "Color3" then return end
+        applyColor(c.R, c.G, c.B, false)
+    end
+
+    Connect(preview.Activated, function()
+        opened = not opened
+        panel.Visible = opened
+        if opened then
+            panel.Size = UDim2.new(1, -16, 0, 64)
+            button.Size = UDim2.new(1, 0, 0, 90)
+        else
+            panel.Size = UDim2.new(1, -16, 0, 0)
+            button.Size = UDim2.new(1, 0, 0, 22)
+        end
+    end)
+
+    -- restore flag
+    if flag and FlagsTable and type(FlagsTable[flag]) == "table" then
+        local t = FlagsTable[flag]
+        if t[1] then applyColor(t[1], t[2], t[3], false) end
+    end
+
+    return colorObj
+end
+
+--------------------------------------------------------------------
+-- Tooltip (attach to any GuiObject)
+--------------------------------------------------------------------
+local TooltipGui = nil
+local TooltipLabel = nil
+local TooltipScale = nil
+
+local function EnsureTooltip()
+    if TooltipGui then return end
+    TooltipGui = New("Frame", "Tooltip", ScreenGui, {
+        Size = UDim2.fromOffset(0, 0),
+        AutomaticSize = Enum.AutomaticSize.XY,
+        BackgroundTransparency = 0.08,
+        Visible = false,
+        ZIndex = 200,
+        ThemeTag = {
+            BackgroundColor3 = "Colors.Buttons.Default"
+        },
+        Elements = {
+            Corner = UDim.new(0, 6),
+            Stroke = {
+                Thickness = 1,
+                ThemeTag = { Color = "Colors.Stroke" }
+            },
+            Padding = {
+                PaddingLeft = UDim.new(0, 8),
+                PaddingRight = UDim.new(0, 8),
+                PaddingTop = UDim.new(0, 5),
+                PaddingBottom = UDim.new(0, 5)
+            }
+        }
+    })
+    TooltipLabel = New("TextLabel", TooltipGui, {
+        AutomaticSize = Enum.AutomaticSize.XY,
+        BackgroundTransparency = 1,
+        TextSize = 11,
+        Text = "",
+        ThemeTag = {
+            TextColor3 = "Colors.Text.Default",
+            Font = "Font.Medium"
+        }
+    })
+    TooltipScale = New("UIScale", TooltipGui, { Scale = 0.9 })
+end
+
+function Library:Tooltip(target, text)
+    assert(typeof(target) == "Instance", "Tooltip target must be Instance")
+    text = tostring(text or "")
+    EnsureTooltip()
+
+    Connect(target.MouseEnter, function()
+        TooltipLabel.Text = text
+        TooltipGui.Visible = true
+        TooltipScale.Scale = 0.9
+        CreateTween(TooltipScale, "Scale", 1, 0.15):Play()
+        CreateTween(TooltipGui, "BackgroundTransparency", 0.08, 0.15):Play()
+    end)
+    Connect(target.MouseLeave, function()
+        CreateTween(TooltipScale, "Scale", 0.9, 0.12):Play()
+        task.delay(0.12, function()
+            if TooltipGui then TooltipGui.Visible = false end
+        end)
+    end)
+    Connect(UserInputService.InputChanged, function(input)
+        if not TooltipGui or not TooltipGui.Visible then return end
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+            or input.UserInputType == Enum.UserInputType.Touch then
+            local scale = (UIScaleObj and UIScaleObj.Scale) or 1
+            TooltipGui.Position = UDim2.fromOffset(
+                (Mouse.X / scale) + 14,
+                (Mouse.Y / scale) + 14
+            )
+        end
+    end)
+end
+
+-- Convenience on Option rows
+function Option:SetTooltip(text)
+    if self.VISIBLE_ELEMENT then
+        Library:Tooltip(self.VISIBLE_ELEMENT, text)
+    end
+    return self
+end
+
 function TabAPI:AddDiscordInvite(config)
     -- simplified version kept compatible
     local title, desc = ParseOptionConfig("DiscordInvite", config)
@@ -3614,7 +3961,8 @@ function Library:MakeWindow(config)
         SubTitle = config[2] or config.SubName or config.SubTitle,
         ScriptFolder = config[3] or config.ScriptFolder or config.FolderName,
         BackgroundImage = config.BackgroundImage or self.Default.BackgroundImage,
-        BackgroundImageTransparency = config.BackgroundImageTransparency or self.Default.BackgroundImageTransparency
+        BackgroundImageTransparency = config.BackgroundImageTransparency or self.Default.BackgroundImageTransparency,
+        Acrylic = config.Acrylic == true
     }
 
     assert(type(windowConfig.Title) == "string", "Window.Title expects string")
@@ -3754,25 +4102,59 @@ function Library:MakeWindow(config)
         end
     end
 
+    local acrylicOn = windowConfig.Acrylic == true
+    local windowElements = {
+        Corner = UDim.new(0, 12),
+        Stroke = {
+            Thickness = 1,
+            ThemeTag = { Color = "Colors.Stroke" }
+        }
+    }
+    if not acrylicOn then
+        windowElements.Gradient = {
+            Rotation = 45,
+            ThemeTag = { Color = "Colors.Background" }
+        }
+    end
     local window = New("Frame", "Window", ScreenGui, {
         Position = UDim2.new(0.5, -size.X.Offset / 2, 0.5, -size.Y.Offset / 2),
         Active = true,
         Size = size,
-        ThemeTag = {
+        BackgroundTransparency = acrylicOn and 0.35 or nil,
+        ThemeTag = acrylicOn and {
+            BackgroundColor3 = "Colors.Buttons.Default"
+        } or {
             BackgroundTransparency = "BackgroundTransparency"
         },
-        Elements = {
-            Corner = UDim.new(0, 12),
-            Stroke = {
-                Thickness = 1,
-                ThemeTag = { Color = "Colors.Stroke" }
-            },
-            Gradient = {
-                Rotation = 45,
-                ThemeTag = { Color = "Colors.Background" }
-            }
-        }
+        Elements = windowElements
     })
+
+    -- Acrylic / frosted overlay (simple blur-like look)
+    local acrylicLayer = nil
+    if acrylicOn then
+        acrylicLayer = New("Frame", "Acrylic", window, {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 0.55,
+            ZIndex = 0,
+            ThemeTag = {
+                BackgroundColor3 = "Colors.Buttons.Default"
+            },
+            Elements = {
+                Corner = UDim.new(0, 12)
+            }
+        })
+        -- Soft primary tint
+        New("Frame", acrylicLayer, {
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 0.85,
+            ThemeTag = {
+                BackgroundColor3 = "Colors.Primary"
+            },
+            Elements = {
+                Corner = UDim.new(0, 12)
+            }
+        })
+    end
 
     Connect(window.Destroying, function() self:Destroy() end)
     Connect(ScreenGui:GetAttributeChangedSignal("UID"), function()
@@ -3818,6 +4200,23 @@ function Library:MakeWindow(config)
                     Font = "Font.Normal"
                 }
             })
+        }
+    })
+
+    -- Tags holder (center of topbar)
+    local tagsHolder = New("Frame", "Tags", topBar, {
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Position = UDim2.fromScale(0.5, 0.5),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Elements = {
+            ListLayout = {
+                FillDirection = Enum.FillDirection.Horizontal,
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                VerticalAlignment = Enum.VerticalAlignment.Center,
+                Padding = UDim.new(0, 4)
+            }
         }
     })
 
@@ -3973,6 +4372,74 @@ function Library:MakeWindow(config)
     api.SetUIScale = self.SetUIScale
     api.SUBTITLE_LABEL = titleLabel.SubTitle
     api.TITLE_LABEL = titleLabel
+    api.AcrylicEnabled = acrylicOn
+
+    function api:SetAcrylic(enabled)
+        self.AcrylicEnabled = enabled == true
+        if acrylicLayer then
+            acrylicLayer.Visible = self.AcrylicEnabled
+        end
+        if self.AcrylicEnabled then
+            window.BackgroundTransparency = 0.35
+        else
+            window.BackgroundTransparency = Library.CurrentTheme and Library.CurrentTheme.BackgroundTransparency or 0.02
+        end
+    end
+
+    -- Tag on topbar (pill badge)
+    function api:AddTag(config)
+        config = type(config) == "table" and config or { Title = tostring(config) }
+        local text = config.Title or config.Name or config.Text or "Tag"
+        local color = config.Color or config.BackgroundColor3
+        if typeof(color) ~= "Color3" then
+            color = nil
+        end
+
+        local tag = New("Frame", tagsHolder, {
+            Size = UDim2.fromOffset(0, 16),
+            AutomaticSize = Enum.AutomaticSize.X,
+            BackgroundTransparency = 0.15,
+            ThemeTag = color and nil or {
+                BackgroundColor3 = "Colors.Primary"
+            },
+            BackgroundColor3 = color,
+            Elements = {
+                Corner = UDim.new(0, 5),
+                Padding = {
+                    PaddingLeft = UDim.new(0, 6),
+                    PaddingRight = UDim.new(0, 6)
+                }
+            }
+        })
+
+        local label = New("TextLabel", tag, {
+            AutomaticSize = Enum.AutomaticSize.XY,
+            BackgroundTransparency = 1,
+            Text = text,
+            TextSize = 9,
+            ThemeTag = {
+                TextColor3 = "Colors.Text.Default",
+                Font = "Font.Bold"
+            }
+        })
+
+        return setmetatable({
+            Frame = tag,
+            Label = label,
+            Kind = "Tag",
+            SetText = function(_, t)
+                label.Text = tostring(t)
+            end,
+            SetColor = function(_, c)
+                if typeof(c) == "Color3" then
+                    tag.BackgroundColor3 = c
+                end
+            end,
+            Destroy = function()
+                tag:Destroy()
+            end
+        }, {})
+    end
 
     api:StartWindow({
         Resizers = { sizeResizer, tabResizer },
