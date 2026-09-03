@@ -3,7 +3,7 @@
     ==========================================
     • Mobile scale = 0.5 (nhỏ hơn 2 lần so với PC)
     • Tự động lưu cài đặt (SaveManager)
-    • Đổi ngôn ngữ tức thì (en/vi)
+    • Đổi ngôn ngữ tức thì (en/vi) – dropdown không bị trống
     • Hỗ trợ background qua rbxassetid
 ]]
 
@@ -32,6 +32,7 @@ local Custom = {}
 Custom.ColorRGB = ACCENT
 Custom.Language = "en"
 Custom.Scale    = 1
+Custom._dropdowns = {}  -- lưu các dropdown để cập nhật ngôn ngữ
 
 Custom.Translations = {
     en = {
@@ -70,8 +71,14 @@ function Custom:RegisterLanguageLabel(label, key)
 end
 
 function Custom:UpdateLanguage()
+    -- Cập nhật các label đã đăng ký (SearchBar, Input placeholder, SelectOptions mặc định)
     for _, entry in ipairs(Custom._languageLabels) do
         entry.label.Text = Custom:T(entry.key)
+    end
+
+    -- Cập nhật tất cả dropdown để hiển thị đúng ngôn ngữ của giá trị đã chọn
+    for _, fd in ipairs(Custom._dropdowns) do
+        fd:Set(fd.Value)  -- refresh label với ngôn ngữ mới
     end
 end
 
@@ -1569,6 +1576,9 @@ function NNVN_Hub:CreateWindow(Config)
                 if loaded then
                     FD.Value = loaded
                 end
+
+                -- Đưa vào danh sách dropdown để cập nhật ngôn ngữ
+                table.insert(Custom._dropdowns, FD)
 
                 local D = MakeItemFrame(35); D.Name = "Dropdown"
                 local DBtn = Custom:Create("TextButton", {
