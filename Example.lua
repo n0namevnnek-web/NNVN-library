@@ -5,7 +5,7 @@
       Library:CreateWindow({ Title, Description, SizeUi?, Language, MinSize, MaxSize, ["Tab Width"] })
       Window:CreateTab({ Name, Icon })
       Tab:AddSection(Title, OpenSection?)
-      Section:AddParagraph / AddSeperator / AddLine / AddButton / AddToggle / AddSlider / AddInput / AddDropdown
+      Section:AddParagraph / AddSeperator / AddLine / AddButton / AddToggle / AddSlider / AddInput / AddDropdown / AddImage
       Library:SetNotification({ Title, Description, Content, Time, Delay })
       Library:SetLanguage("vi"|"en")
       Library.FuncsV3  -- helper + SaveConfig
@@ -15,6 +15,11 @@
       • Bottom bar: drag to move window
       • Bottom-right corner: resize
       • White dot on tab: indicates active tab
+
+    Language support:
+      • Use the Language dropdown in Settings tab to switch between English and Vietnamese.
+      • All built-in texts (Search, WriteInput, SelectOptions, Close, Minimize) update immediately.
+      • Dropdowns retain their selected values after language change.
 ]]
 
 -- ========= LOAD LIBRARY =========
@@ -309,6 +314,18 @@ ExtraSec:AddDropdown({
     Options = {"Red", "Green", "Blue", "Yellow", "Purple", "Orange"},
     Default = {"Red", "Blue"},
     Callback = function(v) print("Multi =", table.concat(v, ",")) end,
+})
+
+-- Example of AddImage (new in NNVN Hub)
+ExtraSec:AddSeperator({ Title = "Images" })
+ExtraSec:AddImage({
+    Title = "Discord Logo (example)",
+    Url = "https://cdn.discordapp.com/icons/123456/abcde.png?size=128", -- replace with actual image URL
+    Height = 80,
+})
+ExtraSec:AddImage({
+    Url = "rbxassetid://7733992901", -- example using rbxassetid (resize icon)
+    Height = 60,
 })
 
 -- ========= STARTUP NOTIFICATION =========
