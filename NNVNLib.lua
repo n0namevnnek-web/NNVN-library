@@ -32,7 +32,7 @@ local Custom = {}
 Custom.ColorRGB = ACCENT
 Custom.Language = "en"
 Custom.Scale    = 1
-Custom._dropdowns = {}  -- lưu các dropdown để cập nhật ngôn ngữ
+Custom._dropdowns = {}
 
 Custom.Translations = {
     en = {
@@ -71,14 +71,11 @@ function Custom:RegisterLanguageLabel(label, key)
 end
 
 function Custom:UpdateLanguage()
-    -- Cập nhật các label đã đăng ký (SearchBar, Input placeholder, SelectOptions mặc định)
     for _, entry in ipairs(Custom._languageLabels) do
         entry.label.Text = Custom:T(entry.key)
     end
-
-    -- Cập nhật tất cả dropdown để hiển thị đúng ngôn ngữ của giá trị đã chọn
     for _, fd in ipairs(Custom._dropdowns) do
-        fd:Set(fd.Value)  -- refresh label với ngôn ngữ mới
+        fd:Set(fd.Value)
     end
 end
 
@@ -135,12 +132,13 @@ local function OpenClose()
         RunService:IsStudio() and Player.PlayerGui
         or (gethui and gethui() or cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")))
 
+    -- ===== SỬA NÚT: to hơn, dịch xuống, dễ ấn hơn =====
     local Btn = Custom:Create("ImageButton", {
         BackgroundColor3     = Color3.fromRGB(30,30,30),
         BackgroundTransparency = 0.3,
         BorderSizePixel      = 0,
-        Position             = UDim2.new(0.05, 0, 0.07, 0),
-        Size                 = UDim2.new(0, 52, 0, 42),
+        Position             = UDim2.new(0.05, 0, 0.09, 0),  -- dịch xuống
+        Size                 = UDim2.new(0, 64, 0, 50),      -- to hơn
         Image                = "rbxassetid://138952058031836",
         ImageColor3          = ACCENT,
         Visible              = false,
@@ -1577,7 +1575,6 @@ function NNVN_Hub:CreateWindow(Config)
                     FD.Value = loaded
                 end
 
-                -- Đưa vào danh sách dropdown để cập nhật ngôn ngữ
                 table.insert(Custom._dropdowns, FD)
 
                 local D = MakeItemFrame(35); D.Name = "Dropdown"
@@ -1760,7 +1757,7 @@ function NNVN_Hub:SetLanguage(lang)
 end
 
 -- ============================================================
--- FuncsV3 helper (giữ nguyên)
+-- FuncsV3 helper
 -- ============================================================
 local FuncsV3  = {}
 local SaveConf = nil
