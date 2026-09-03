@@ -1,20 +1,10 @@
 --[[
-    NNVN Hub UI Library  (Gray/White Edition)
+    NNVN Hub UI Library (Gray/White Edition)
     ==========================================
-    Changes vs original:
-      • Accent color  : gray/white  (no more red)
-      • Maximize      : true edge-to-edge fullscreen (like WindUI)
-      • Notifications : bottom-RIGHT corner, slide-in from right
-      • Mobile size   : 300×230 default (was 340×280)
-      • Default lang  : "en"
-      • NEW  Library:FetchDiscord({ GuildId, BotToken, Callback })
-             → returns { name, icon, member_count, online_count }
-      • NEW  Library:GetDiscordIconUrl(guildId, iconHash, size?)
-      • NEW  Section:AddImage({ Url, Height?, Title? })
-
-    Window controls (top-right):  Minus  |  Maximize  |  X
-    Bottom drag bar  : move the window
-    Resize handle    : bottom-right corner
+    • Hỗ trợ scale cho điện thoại (0.65)
+    • Đổi ngôn ngữ mượt mà (cập nhật ngay)
+    • SaveManager tự động lưu mọi thay đổi
+    • Hỗ trợ background qua rbxassetid
 ]]
 
 local Players          = game:GetService("Players")
@@ -26,22 +16,22 @@ local VirtualUser      = game:GetService("VirtualUser")
 local HttpService      = game:GetService("HttpService")
 
 -- ============================================================
--- Palette — all accent is gray/white, NO red
+-- Palette
 -- ============================================================
-local ACCENT      = Color3.fromRGB(190, 190, 190)   -- main accent (light gray)
-local ACCENT_DIM  = Color3.fromRGB(120, 120, 120)   -- dimmer variant
-local BG_MAIN     = Color3.fromRGB(15,  15,  15)    -- window bg
-local BG_SECTION  = Color3.fromRGB(255, 255, 255)   -- section bg (low transparency)
+local ACCENT      = Color3.fromRGB(190, 190, 190)
+local ACCENT_DIM  = Color3.fromRGB(120, 120, 120)
+local BG_MAIN     = Color3.fromRGB(15,  15,  15)
+local BG_SECTION  = Color3.fromRGB(255, 255, 255)
 local TEXT_HI     = Color3.fromRGB(235, 235, 235)
 local TEXT_LO     = Color3.fromRGB(140, 140, 140)
 
 -- ============================================================
--- Custom helper
+-- Custom helper + Ngôn ngữ + Scale
 -- ============================================================
 local Custom = {}
 Custom.ColorRGB = ACCENT
-
 Custom.Language = "en"
+Custom.Scale    = 1  -- sẽ được set dựa trên mobile
 
 Custom.Translations = {
     en = {
@@ -66,7 +56,25 @@ function Custom:T(key)
 end
 
 function Custom:SetLanguage(lang)
-    if lang == "vi" or lang == "en" then Custom.Language = lang end
+    if lang == "vi" or lang == "en" then
+        Custom.Language = lang
+        -- Cập nhật tất cả các label trong GUI hiện tại
+        Custom:UpdateLanguage()
+    end
+end
+
+-- Lưu tham chiếu các label cần cập nhật
+Custom._languageLabels = {}
+
+function Custom:RegisterLanguageLabel(label, key)
+    table.insert(Custom._languageLabels, {label = label, key = key})
+    label.Text = Custom:T(key)
+end
+
+function Custom:UpdateLanguage()
+    for _, entry in ipairs(Custom._languageLabels) do
+        entry.label.Text = Custom:T(entry.key)
+    end
 end
 
 function Custom:Create(Name, Props, Parent)
@@ -135,7 +143,6 @@ local function OpenClose()
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,9)}, Btn)
     Custom:Create("UIStroke", {Color = ACCENT_DIM, Thickness = 1.2}, Btn)
 
-    -- draggable
     local drag, ds, sp = false, nil, nil
     Btn.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -177,7 +184,7 @@ local NNVN_Hub = {}
 NNVN_Hub.Unloaded = false
 
 -- ============================================================
--- Notifications — bottom-RIGHT, gray/dark theme, slide from right
+-- Notifications — bottom-RIGHT
 -- ============================================================
 local _notifyGui = nil
 local _notifyLayout = nil
@@ -188,7 +195,6 @@ local function EnsureNotifyGui()
         RunService:IsStudio() and Player.PlayerGui
         or (gethui and gethui() or cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")))
 
-    -- Bottom-RIGHT anchor: position is AnchorPoint(1,1), UDim2(1,-20, 1,-20)
     _notifyLayout = Custom:Create("Frame", {
         AnchorPoint          = Vector2.new(1,1),
         BackgroundTransparency = 1,
@@ -209,7 +215,6 @@ function NNVN_Hub:SetNotification(Config)
     EnsureNotifyGui()
     local Layout = _notifyLayout
 
-    -- Repack stack upward after removal
     Layout.ChildRemoved:Connect(function()
         local count = 0
         local ti = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
@@ -220,7 +225,6 @@ function NNVN_Hub:SetNotification(Config)
         end
     end)
 
-    -- compute Y offset for stacking
     local stackOff = 0
     for _, v in ipairs(Layout:GetChildren()) do
         stackOff = -(v.Position.Y.Offset) + v.Size.Y.Offset + 10
@@ -238,7 +242,6 @@ function NNVN_Hub:SetNotification(Config)
     local NReal = Custom:Create("Frame", {
         BackgroundColor3     = Color3.fromRGB(28,28,28),
         BorderSizePixel      = 0,
-        -- Start offscreen to the RIGHT
         Position             = UDim2.new(0, 320, 0, 0),
         Size                 = UDim2.new(1,0,1,0),
         Name                 = "NReal"
@@ -246,7 +249,6 @@ function NNVN_Hub:SetNotification(Config)
     Custom:Create("UICorner",  {CornerRadius = UDim.new(0,8)}, NReal)
     Custom:Create("UIStroke",  {Color = ACCENT_DIM, Thickness = 1}, NReal)
 
-    -- Top bar
     local Top = Custom:Create("Frame", {
         BackgroundTransparency = 1,
         BorderSizePixel      = 0,
@@ -291,7 +293,6 @@ function NNVN_Hub:SetNotification(Config)
         Size        = UDim2.new(0,24,0,24),
     }, Top)
 
-    -- Divider
     Custom:Create("Frame", {
         AnchorPoint = Vector2.new(0.5,0),
         BackgroundColor3 = ACCENT_DIM,
@@ -315,14 +316,12 @@ function NNVN_Hub:SetNotification(Config)
         Size        = UDim2.new(1,-20,0,40),
     }, NReal)
 
-    -- Auto-height
     task.defer(function()
         local h = math.max(90, ContentLabel.TextBounds.Y + 48)
         NFrame.Size = UDim2.new(1,0,0,h)
         ContentLabel.Size = UDim2.new(1,-20,0, h-48)
     end)
 
-    -- Progress bar (gray)
     local PBar = Custom:Create("Frame", {
         AnchorPoint = Vector2.new(0,1),
         BackgroundColor3 = ACCENT_DIM,
@@ -343,11 +342,9 @@ function NNVN_Hub:SetNotification(Config)
 
     XBtn.Activated:Connect(Close)
 
-    -- Slide IN from right
     TweenService:Create(NReal, TweenInfo.new(Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
         {Position = UDim2.new(0,0,0,0)}):Play()
 
-    -- Progress drain
     task.spawn(function()
         TweenService:Create(PBar, TweenInfo.new(Delay, Enum.EasingStyle.Linear),
             {Size = UDim2.new(0,0,0,2)}):Play()
@@ -383,7 +380,6 @@ function NNVN_Hub:FetchDiscord(Config)
         if ok and res and res.StatusCode == 200 then
             local ok2, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
             if ok2 then
-                -- Normalize to a clean table
                 Callback({
                     name         = data.name or "",
                     icon         = data.icon or "",
@@ -407,6 +403,39 @@ function NNVN_Hub:GetDiscordIconUrl(GuildId, IconHash, Size)
 end
 
 -- ============================================================
+-- SaveManager tích hợp
+-- ============================================================
+local SAVE_FILE = "NNVNSettings.json"
+local Settings = {}
+local function LoadSettings()
+    if isfile(SAVE_FILE) then
+        local ok, data = pcall(function() return HttpService:JSONDecode(readfile(SAVE_FILE)) end)
+        if ok and type(data) == "table" then
+            Settings = data
+        end
+    end
+end
+local function SaveSettings()
+    local ok, json = pcall(HttpService.JSONEncode, HttpService, Settings)
+    if ok then
+        writefile(SAVE_FILE, json)
+    end
+end
+LoadSettings()
+
+-- Hàm hỗ trợ lưu/load cho từng control
+function NNVN_Hub:SaveValue(key, value)
+    Settings[key] = value
+    SaveSettings()
+end
+function NNVN_Hub:LoadValue(key, default)
+    if Settings[key] ~= nil then
+        return Settings[key]
+    end
+    return default
+end
+
+-- ============================================================
 -- CreateWindow
 -- ============================================================
 function NNVN_Hub:CreateWindow(Config)
@@ -423,17 +452,23 @@ function NNVN_Hub:CreateWindow(Config)
         if cam and cam.ViewportSize.X < 700 then IsMobile = true end
     end
 
-    local DefaultSize    = IsMobile and UDim2.fromOffset(300, 230) or UDim2.fromOffset(700, 420)
-    local SizeUi         = Config[4] or Config.SizeUi or DefaultSize
-    local WindowMinSize  = Config.MinSize or (IsMobile and Vector2.new(260,200) or Vector2.new(480,300))
-    local WindowMaxSize  = Config.MaxSize or (IsMobile and Vector2.new(480,380) or Vector2.new(1100,720))
+    -- Scale cho mobile
+    if IsMobile then
+        Custom.Scale = 0.65
+    else
+        Custom.Scale = 1
+    end
+    local sc = Custom.Scale
 
-    -- ScreenGui
+    local DefaultSize    = IsMobile and UDim2.fromOffset(300*sc, 230*sc) or UDim2.fromOffset(700, 420)
+    local SizeUi         = Config[4] or Config.SizeUi or DefaultSize
+    local WindowMinSize  = Config.MinSize or (IsMobile and Vector2.new(260*sc,200*sc) or Vector2.new(480,300))
+    local WindowMaxSize  = Config.MaxSize or (IsMobile and Vector2.new(480*sc,380*sc) or Vector2.new(1100,720))
+
     local NNGui = Custom:Create("ScreenGui", {ZIndexBehavior = Enum.ZIndexBehavior.Sibling},
         RunService:IsStudio() and Player.PlayerGui
         or (gethui and gethui() or cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")))
 
-    -- Shadow holder (positions the whole window)
     local ShadowHolder = Custom:Create("Frame", {
         BackgroundTransparency = 1,
         BorderSizePixel        = 0,
@@ -456,6 +491,7 @@ function NNVN_Hub:CreateWindow(Config)
         Name               = "Shadow"
     }, ShadowHolder)
 
+    -- Main frame (có thể đặt background image)
     local Main = Custom:Create("Frame", {
         AnchorPoint        = Vector2.new(0.5,0.5),
         BackgroundColor3   = BG_MAIN,
@@ -469,11 +505,30 @@ function NNVN_Hub:CreateWindow(Config)
     Custom:Create("UICorner", {}, Main)
     Custom:Create("UIStroke", {Color = Color3.fromRGB(55,55,55), Thickness = 1.4}, Main)
 
+    -- Background image (nếu có)
+    local bgId = Config.BackgroundAssetId or Config.Background
+    if bgId and tonumber(bgId) then
+        local bg = Custom:Create("ImageLabel", {
+            Image = "rbxassetid://" .. tostring(bgId),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Size = UDim2.new(1,0,1,0),
+            Position = UDim2.new(0,0,0,0),
+            ScaleType = Enum.ScaleType.Fit,
+            Name = "BackgroundImage",
+            ZIndex = 0,
+        }, Main)
+        -- Đảm bảo các thành phần khác nằm trên
+        for _, child in ipairs(Main:GetChildren()) do
+            if child ~= bg then child.ZIndex = child.ZIndex + 1 end
+        end
+    end
+
     -- ── Top bar ──────────────────────────────────────────────
     local Top = Custom:Create("Frame", {
         BackgroundTransparency = 1,
         BorderSizePixel        = 0,
-        Size                   = UDim2.new(1,0,0,38),
+        Size                   = UDim2.new(1,0,0,38*sc),
         Name                   = "Top"
     }, Main)
     Custom:Create("UICorner", {}, Top)
@@ -482,19 +537,19 @@ function NNVN_Hub:CreateWindow(Config)
         Font           = Enum.Font.GothamBold,
         Text           = Title,
         TextColor3     = TEXT_HI,
-        TextSize       = 14,
+        TextSize       = 14*sc,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Size           = UDim2.new(0.55,0,1,0),
-        Position       = UDim2.new(0,10,0,0),
+        Position       = UDim2.new(0,10*sc,0,0),
     }, Top)
 
     local DescLabel = Custom:Create("TextLabel", {
         Font           = Enum.Font.GothamBold,
         Text           = Desc,
         TextColor3     = ACCENT,
-        TextSize       = 13,
+        TextSize       = 13*sc,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -503,7 +558,6 @@ function NNVN_Hub:CreateWindow(Config)
     }, Top)
     Custom:Create("UIStroke", {Color = ACCENT_DIM, Thickness = 0.35}, DescLabel)
 
-    -- Lucide-style asset ids (keep same as original)
     local Lucide = {
         Maximize = "rbxassetid://7733992982",
         Minimize = "rbxassetid://7733997941",
@@ -518,8 +572,8 @@ function NNVN_Hub:CreateWindow(Config)
             BackgroundColor3 = BgColor,
             BackgroundTransparency = BgTrans,
             BorderSizePixel = 0,
-            Position    = UDim2.new(1,PosX,0.5,0),
-            Size        = UDim2.new(0,28,0,22),
+            Position    = UDim2.new(1,PosX*sc,0.5,0),
+            Size        = UDim2.new(0,28*sc,0,22*sc),
             Name        = Name,
             AutoButtonColor = false,
         }, Top)
@@ -528,7 +582,7 @@ function NNVN_Hub:CreateWindow(Config)
             BackgroundTransparency = 1,
             Image       = IconId,
             ImageColor3 = Color3.fromRGB(220,220,220),
-            Size        = UDim2.new(0,14,0,14),
+            Size        = UDim2.new(0,14*sc,0,14*sc),
             Position    = UDim2.new(0.5,0,0.5,0),
             AnchorPoint = Vector2.new(0.5,0.5),
             ScaleType   = Enum.ScaleType.Fit,
@@ -543,43 +597,41 @@ function NNVN_Hub:CreateWindow(Config)
         return Btn, Img
     end
 
-    local CloseBtn, _  = MakeWinBtn("Close", Lucide.X,        -8,  Color3.fromRGB(80,80,80), 0.4)
-    local MaxBtn, MaxIco = MakeWinBtn("Max", Lucide.Maximize, -40, Color3.fromRGB(55,55,55), 0.5)
-    local MinBtn, _    = MakeWinBtn("Min",  Lucide.Minus,    -72, Color3.fromRGB(55,55,55), 0.5)
+    local CloseBtn, _  = MakeWinBtn("Close", Lucide.X,        -8*sc,  Color3.fromRGB(80,80,80), 0.4)
+    local MaxBtn, MaxIco = MakeWinBtn("Max", Lucide.Maximize, -40*sc, Color3.fromRGB(55,55,55), 0.5)
+    local MinBtn, _    = MakeWinBtn("Min",  Lucide.Minus,    -72*sc, Color3.fromRGB(55,55,55), 0.5)
 
-    -- Divider under top bar
     Custom:Create("Frame", {
         AnchorPoint = Vector2.new(0.5,0),
         BackgroundColor3 = Color3.fromRGB(50,50,50),
         BorderSizePixel  = 0,
-        Position         = UDim2.new(0.5,0,0,38),
+        Position         = UDim2.new(0.5,0,0,38*sc),
         Size             = UDim2.new(1,0,0,1),
     }, Main)
 
-    -- ── Tab list (left column) ────────────────────────────────
+    -- ── Tab list ─────────────────────────────────────────────
     local LayersTab = Custom:Create("Frame", {
         BackgroundTransparency = 1,
         BorderSizePixel  = 0,
-        Position         = UDim2.new(0,9,0,50),
-        Size             = UDim2.new(0,TabWidth,1,-59),
+        Position         = UDim2.new(0,9*sc,0,50*sc),
+        Size             = UDim2.new(0,TabWidth*sc,1,-59*sc),
         Name             = "LayersTab"
     }, Main)
     Custom:Create("UICorner", {CornerRadius = UDim.new(0,2)}, LayersTab)
 
-    -- vertical divider between tab list and content
     Custom:Create("Frame", {
         BackgroundColor3  = Color3.fromRGB(48,48,48),
         BorderSizePixel   = 0,
-        Position          = UDim2.new(0, TabWidth+14, 0, 50),
-        Size              = UDim2.new(0,1,1,-58),
+        Position          = UDim2.new(0, (TabWidth+14)*sc, 0, 50*sc),
+        Size              = UDim2.new(0,1,1,-58*sc),
     }, Main)
 
-    -- ── Content area (right) ──────────────────────────────────
+    -- ── Content area ──────────────────────────────────────────
     local Layers = Custom:Create("Frame", {
         BackgroundTransparency = 1,
         BorderSizePixel  = 0,
-        Position         = UDim2.new(0, TabWidth+20, 0, 50),
-        Size             = UDim2.new(1,-(TabWidth+28), 1,-59),
+        Position         = UDim2.new(0, (TabWidth+20)*sc, 0, 50*sc),
+        Size             = UDim2.new(1, -(TabWidth+28)*sc, 1, -59*sc),
         Name             = "Layers"
     }, Main)
 
@@ -587,11 +639,11 @@ function NNVN_Hub:CreateWindow(Config)
         Font           = Enum.Font.GothamBold,
         Text           = "",
         TextColor3     = TEXT_HI,
-        TextSize       = 15,
+        TextSize       = 15*sc,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Size           = UDim2.new(1,0,0,28),
+        Size           = UDim2.new(1,0,0,28*sc),
         Name           = "NameTab"
     }, Layers)
 
@@ -601,7 +653,7 @@ function NNVN_Hub:CreateWindow(Config)
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Position       = UDim2.new(0,0,1,0),
-        Size           = UDim2.new(1,0,1,-31),
+        Size           = UDim2.new(1,0,1,-31*sc),
         Name           = "LayersReal"
     }, Layers)
 
@@ -615,14 +667,13 @@ function NNVN_Hub:CreateWindow(Config)
         Name            = "LayersPageLayout"
     }, LayersFolder)
 
-    -- Scroll for tab buttons
     local ScrollTab = Custom:Create("ScrollingFrame", {
         CanvasSize        = UDim2.new(0,0,2,0),
         ScrollBarThickness = 0,
         Active            = true,
         BackgroundTransparency = 1,
         BorderSizePixel   = 0,
-        Size              = UDim2.new(1,0,1,-8),
+        Size              = UDim2.new(1,0,1,-8*sc),
         Name              = "ScrollTab"
     }, LayersTab)
     Custom:Create("UIListLayout", {Padding = UDim.new(0,0), SortOrder = Enum.SortOrder.LayoutOrder}, ScrollTab)
@@ -630,7 +681,7 @@ function NNVN_Hub:CreateWindow(Config)
     local function UpdateScrollCanvas()
         local h = 0
         for _, v in pairs(ScrollTab:GetChildren()) do
-            if v.Name ~= "UIListLayout" then h += 3 + v.Size.Y.Offset end
+            if v.Name ~= "UIListLayout" then h += 3*sc + v.Size.Y.Offset end
         end
         ScrollTab.CanvasSize = UDim2.new(0,0,0,h)
     end
@@ -658,7 +709,6 @@ function NNVN_Hub:CreateWindow(Config)
         NNVN_Hub.Unloaded = true
     end)
 
-    -- TRUE fullscreen maximize (like WindUI)
     local function ToggleMaximize()
         CircleClick(MaxBtn, Player:GetMouse().X, Player:GetMouse().Y)
         local cam = workspace.CurrentCamera
@@ -700,8 +750,8 @@ function NNVN_Hub:CreateWindow(Config)
         BackgroundColor3 = Color3.fromRGB(160,160,160),
         BackgroundTransparency = 0.75,
         BorderSizePixel  = 0,
-        Position         = UDim2.new(0.5,0,1,-5),
-        Size             = UDim2.new(0,110,0,4),
+        Position         = UDim2.new(0.5,0,1,-5*sc),
+        Size             = UDim2.new(0,110*sc,0,4*sc),
         Name             = "BottomBar",
         ZIndex           = 5,
     }, Main)
@@ -710,19 +760,19 @@ function NNVN_Hub:CreateWindow(Config)
     local BBHit = Custom:Create("TextButton", {
         Text             = "",
         BackgroundTransparency = 1,
-        Size             = UDim2.new(1,40,1,18),
+        Size             = UDim2.new(1,40*sc,1,18*sc),
         Position         = UDim2.new(0.5,0,0.5,0),
         AnchorPoint      = Vector2.new(0.5,0.5),
         ZIndex           = 6,
     }, BottomBar)
     BBHit.MouseEnter:Connect(function()
         TweenService:Create(BottomBar, TweenInfo.new(0.15),
-            {BackgroundTransparency=0.35, Size=UDim2.new(0,150,0,4)}):Play()
+            {BackgroundTransparency=0.35, Size=UDim2.new(0,150*sc,0,4*sc)}):Play()
     end)
     BBHit.MouseLeave:Connect(function()
         if not BBHit:GetAttribute("Dragging") then
             TweenService:Create(BottomBar, TweenInfo.new(0.2),
-                {BackgroundTransparency=0.75, Size=UDim2.new(0,110,0,4)}):Play()
+                {BackgroundTransparency=0.75, Size=UDim2.new(0,110*sc,0,4*sc)}):Play()
         end
     end)
     do
@@ -739,7 +789,7 @@ function NNVN_Hub:CreateWindow(Config)
                         TweenService:Create(BottomBar, TweenInfo.new(0.2), {
                             BackgroundTransparency=0.75,
                             BackgroundColor3=Color3.fromRGB(160,160,160),
-                            Size=UDim2.new(0,110,0,4)
+                            Size=UDim2.new(0,110*sc,0,4*sc)
                         }):Play()
                     end
                 end)
@@ -753,13 +803,13 @@ function NNVN_Hub:CreateWindow(Config)
         end)
     end
 
-    -- ── Resize handle (bottom-right corner) ──────────────────
+    -- ── Resize handle ──────────────────────────────────────────
     local ResizeHandle = Custom:Create("Frame", {
         AnchorPoint      = Vector2.new(1,1),
         BackgroundTransparency = 1,
         BorderSizePixel  = 0,
         Position         = UDim2.new(1,0,1,0),
-        Size             = UDim2.new(0,22,0,22),
+        Size             = UDim2.new(0,22*sc,0,22*sc),
         Name             = "ResizeHandle",
         ZIndex           = 10,
     }, Main)
@@ -768,8 +818,8 @@ function NNVN_Hub:CreateWindow(Config)
         Image       = "rbxassetid://7733992901",
         ImageColor3 = ACCENT_DIM,
         ImageTransparency = 0.45,
-        Size        = UDim2.new(0,14,0,14),
-        Position    = UDim2.new(1,-16,1,-16),
+        Size        = UDim2.new(0,14*sc,0,14*sc),
+        Position    = UDim2.new(1,-16*sc,1,-16*sc),
         ZIndex      = 11,
     }, ResizeHandle)
     do
@@ -801,15 +851,15 @@ function NNVN_Hub:CreateWindow(Config)
         end)
     end
 
-    -- ── Dropdown overlay (blur frame) ────────────────────────
+    -- ── Dropdown overlay ────────────────────────────────────────
     local MoreBlur = Custom:Create("Frame", {
         AnchorPoint      = Vector2.new(1,1),
         BackgroundColor3 = Color3.fromRGB(0,0,0),
         BackgroundTransparency = 1,
         BorderSizePixel  = 0,
         ClipsDescendants = true,
-        Position         = UDim2.new(1,8,1,8),
-        Size             = UDim2.new(1,154,1,54),
+        Position         = UDim2.new(1,8*sc,1,8*sc),
+        Size             = UDim2.new(1,154*sc,1,54*sc),
         Visible          = false,
         Name             = "MoreBlur"
     }, Layers)
@@ -827,8 +877,8 @@ function NNVN_Hub:CreateWindow(Config)
         BackgroundColor3 = Color3.fromRGB(30,30,30),
         BorderSizePixel  = 0,
         LayoutOrder      = 1,
-        Position         = UDim2.new(1,172,0.5,0),
-        Size             = UDim2.new(0,160,1,-16),
+        Position         = UDim2.new(1,172*sc,0.5,0),
+        Size             = UDim2.new(0,160*sc,1,-16*sc),
         Name             = "DropdownSelect",
         ClipsDescendants = true,
     }, MoreBlur)
@@ -839,7 +889,7 @@ function NNVN_Hub:CreateWindow(Config)
         if MoreBlur.Visible then
             local ti = TweenInfo.new(0.2)
             TweenService:Create(MoreBlur,        ti, {BackgroundTransparency=0.999}):Play()
-            TweenService:Create(DropdownSelect,  ti, {Position=UDim2.new(1,172,0.5,0)}):Play()
+            TweenService:Create(DropdownSelect,  ti, {Position=UDim2.new(1,172*sc,0.5,0)}):Play()
             task.wait(0.22); MoreBlur.Visible = false
         end
     end)
@@ -849,7 +899,7 @@ function NNVN_Hub:CreateWindow(Config)
         BackgroundTransparency = 1,
         BorderSizePixel  = 0,
         Position         = UDim2.new(0.5,0,0.5,0),
-        Size             = UDim2.new(1,-10,1,-10),
+        Size             = UDim2.new(1,-10*sc,1,-10*sc),
         Name             = "DropdownSelectReal"
     }, DropdownSelect)
 
@@ -883,14 +933,14 @@ function NNVN_Hub:CreateWindow(Config)
             Size                 = UDim2.new(1,0,1,0),
             Name                 = "ScrolLayers",
         }, LayersFolder)
-        Custom:Create("UIListLayout", {Padding=UDim.new(0,3), SortOrder=Enum.SortOrder.LayoutOrder}, ScrolLayers)
+        Custom:Create("UIListLayout", {Padding=UDim.new(0,3*sc), SortOrder=Enum.SortOrder.LayoutOrder}, ScrolLayers)
 
         local Tab = Custom:Create("Frame", {
             BackgroundColor3     = Color3.fromRGB(255,255,255),
             BackgroundTransparency = CountTab==0 and 0.88 or 0.999,
             BorderSizePixel      = 0,
             LayoutOrder          = CountTab,
-            Size                 = UDim2.new(1,0,0,30),
+            Size                 = UDim2.new(1,0,0,30*sc),
             Name                 = "Tab",
         }, ScrollTab)
         Custom:Create("UICorner", {CornerRadius=UDim.new(0,4)}, Tab)
@@ -907,12 +957,12 @@ function NNVN_Hub:CreateWindow(Config)
             Font             = Enum.Font.GothamBold,
             Text             = _Name,
             TextColor3       = TEXT_HI,
-            TextSize         = 12,
+            TextSize         = 12*sc,
             TextXAlignment   = Enum.TextXAlignment.Left,
             BackgroundTransparency = 1,
             BorderSizePixel  = 0,
-            Size             = UDim2.new(1,-6,1,0),
-            Position         = UDim2.new(0,28,0,0),
+            Size             = UDim2.new(1,-6*sc,1,0),
+            Position         = UDim2.new(0,28*sc,0,0),
             Name             = "TabName",
         }, Tab)
 
@@ -921,8 +971,8 @@ function NNVN_Hub:CreateWindow(Config)
             ImageColor3      = ACCENT,
             BackgroundTransparency = 1,
             BorderSizePixel  = 0,
-            Position         = UDim2.new(0,8,0,7),
-            Size             = UDim2.new(0,15,0,15),
+            Position         = UDim2.new(0,8*sc,0,7*sc),
+            Size             = UDim2.new(0,15*sc,0,15*sc),
         }, Tab)
 
         if CountTab == 0 then
@@ -932,8 +982,8 @@ function NNVN_Hub:CreateWindow(Config)
             local CF = Custom:Create("Frame", {
                 BackgroundColor3 = ACCENT,
                 BorderSizePixel  = 0,
-                Position         = UDim2.new(0,2,0,9),
-                Size             = UDim2.new(0,2,0,12),
+                Position         = UDim2.new(0,2*sc,0,9*sc),
+                Size             = UDim2.new(0,2*sc,0,12*sc),
                 Name             = "ChooseFrame",
             }, Tab)
             Custom:Create("UICorner", {}, CF)
@@ -959,15 +1009,15 @@ function NNVN_Hub:CreateWindow(Config)
                 TweenService:Create(Tab, TweenInfo.new(0.5,Enum.EasingStyle.Back,Enum.EasingDirection.InOut),
                     {BackgroundTransparency=0.88}):Play()
                 TweenService:Create(CF, TweenInfo.new(0.45,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut),
-                    {Position=UDim2.new(0,2,0,9+(33*Tab.LayoutOrder))}):Play()
+                    {Position=UDim2.new(0,2*sc,0,9*sc+(33*sc*Tab.LayoutOrder))}):Play()
                 LayersPageLayout:JumpToIndex(Tab.LayoutOrder)
                 task.wait(0.05)
                 NameTab.Text = _Name
                 TweenService:Create(CF, TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut),
-                    {Size=UDim2.new(0,2,0,20)}):Play()
+                    {Size=UDim2.new(0,2*sc,0,20*sc)}):Play()
                 task.wait(0.18)
                 TweenService:Create(CF, TweenInfo.new(0.22,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut),
-                    {Size=UDim2.new(0,2,0,12)}):Play()
+                    {Size=UDim2.new(0,2*sc,0,12*sc)}):Play()
             end
         end)
 
@@ -984,7 +1034,7 @@ function NNVN_Hub:CreateWindow(Config)
                 BorderSizePixel  = 0,
                 ClipsDescendants = true,
                 LayoutOrder      = CountSec,
-                Size             = UDim2.new(1,0,0,30),
+                Size             = UDim2.new(1,0,0,30*sc),
                 Name             = "Section"
             }, ScrolLayers)
 
@@ -995,7 +1045,7 @@ function NNVN_Hub:CreateWindow(Config)
                 BorderSizePixel  = 0,
                 LayoutOrder      = 1,
                 Position         = UDim2.new(0.5,0,0,0),
-                Size             = UDim2.new(1,1,0,30),
+                Size             = UDim2.new(1,1*sc,0,30*sc),
                 Name             = "SectionReal"
             }, Section)
             Custom:Create("UICorner", {CornerRadius=UDim.new(0,4)}, SectionReal)
@@ -1012,8 +1062,8 @@ function NNVN_Hub:CreateWindow(Config)
                 AnchorPoint      = Vector2.new(1,0.5),
                 BackgroundTransparency = 1,
                 BorderSizePixel  = 0,
-                Position         = UDim2.new(1,-5,0.5,0),
-                Size             = UDim2.new(0,20,0,20),
+                Position         = UDim2.new(1,-5*sc,0.5,0),
+                Size             = UDim2.new(0,20*sc,0,20*sc),
             }, SectionReal)
             local ChevImg = Custom:Create("ImageLabel", {
                 Image            = "rbxassetid://125609963478878",
@@ -1023,30 +1073,29 @@ function NNVN_Hub:CreateWindow(Config)
                 BorderSizePixel  = 0,
                 Position         = UDim2.new(0.5,0,0.5,0),
                 Rotation         = -90,
-                Size             = UDim2.new(1,4,1,4),
+                Size             = UDim2.new(1,4*sc,1,4*sc),
             }, ChevFrame)
 
             Custom:Create("TextLabel", {
                 Font             = Enum.Font.GothamBold,
                 Text             = Title,
                 TextColor3       = TEXT_HI,
-                TextSize         = 12,
+                TextSize         = 12*sc,
                 TextXAlignment   = Enum.TextXAlignment.Left,
                 TextYAlignment   = Enum.TextYAlignment.Top,
                 AnchorPoint      = Vector2.new(0,0.5),
                 BackgroundTransparency = 1,
                 BorderSizePixel  = 0,
-                Position         = UDim2.new(0,10,0.5,0),
-                Size             = UDim2.new(1,-50,0,13),
+                Position         = UDim2.new(0,10*sc,0.5,0),
+                Size             = UDim2.new(1,-50*sc,0,13*sc),
                 Name             = "SectionTitle"
             }, SectionReal)
 
-            -- Gradient divider (gray)
             local SecDivide = Custom:Create("Frame", {
                 BackgroundColor3 = Color3.fromRGB(180,180,180),
                 BorderSizePixel  = 0,
                 AnchorPoint      = Vector2.new(0.5,0),
-                Position         = UDim2.new(0.5,0,0,33),
+                Position         = UDim2.new(0.5,0,0,33*sc),
                 Size             = UDim2.new(0,0,0,1),
                 Name             = "SectionDivide"
             }, Section)
@@ -1065,30 +1114,29 @@ function NNVN_Hub:CreateWindow(Config)
                 BorderSizePixel  = 0,
                 ClipsDescendants = true,
                 LayoutOrder      = 1,
-                Position         = UDim2.new(0.5,0,0,38),
+                Position         = UDim2.new(0.5,0,0,38*sc),
                 Size             = UDim2.new(1,0,0,0),
                 Name             = "SectionAdd"
             }, Section)
-            Custom:Create("UIListLayout", {Padding=UDim.new(0,3), SortOrder=Enum.SortOrder.LayoutOrder}, SectionAdd)
+            Custom:Create("UIListLayout", {Padding=UDim.new(0,3*sc), SortOrder=Enum.SortOrder.LayoutOrder}, SectionAdd)
 
-            -- Scroll canvas update
             local function UpdateScrollCanvas()
                 local h = 0
                 for _, c in pairs(ScrolLayers:GetChildren()) do
-                    if c.Name ~= "UIListLayout" then h += 3+c.Size.Y.Offset end
+                    if c.Name ~= "UIListLayout" then h += 3*sc+c.Size.Y.Offset end
                 end
                 ScrolLayers.CanvasSize = UDim2.new(0,0,0,h)
             end
 
             local function UpdateSectionSize()
                 if OpenSection then
-                    local h = 38
+                    local h = 38*sc
                     for _, v in pairs(SectionAdd:GetChildren()) do
-                        if v.Name ~= "UIListLayout" and v.Name ~= "UICorner" then h += v.Size.Y.Offset+3 end
+                        if v.Name ~= "UIListLayout" and v.Name ~= "UICorner" then h += v.Size.Y.Offset+3*sc end
                     end
                     TweenService:Create(ChevFrame, TweenInfo.new(0.1), {Rotation=90}):Play()
-                    TweenService:Create(Section,   TweenInfo.new(0.1), {Size=UDim2.new(1,1,0,h)}):Play()
-                    TweenService:Create(SectionAdd, TweenInfo.new(0.1), {Size=UDim2.new(1,0,0,h-38)}):Play()
+                    TweenService:Create(Section,   TweenInfo.new(0.1), {Size=UDim2.new(1,1*sc,0,h)}):Play()
+                    TweenService:Create(SectionAdd, TweenInfo.new(0.1), {Size=UDim2.new(1,0,0,h-38*sc)}):Play()
                     TweenService:Create(SecDivide,  TweenInfo.new(0.1), {Size=UDim2.new(1,0,0,1)}):Play()
                     task.wait(0.5); UpdateScrollCanvas()
                 end
@@ -1098,7 +1146,7 @@ function NNVN_Hub:CreateWindow(Config)
                 CircleClick(SecBtn, Player:GetMouse().X, Player:GetMouse().Y)
                 if OpenSection then
                     TweenService:Create(ChevFrame, TweenInfo.new(0.1), {Rotation=0}):Play()
-                    TweenService:Create(Section,   TweenInfo.new(0.1), {Size=UDim2.new(1,1,0,30)}):Play()
+                    TweenService:Create(Section,   TweenInfo.new(0.1), {Size=UDim2.new(1,1*sc,0,30*sc)}):Play()
                     TweenService:Create(SecDivide, TweenInfo.new(0.1), {Size=UDim2.new(0,0,0,1)}):Play()
                     OpenSection = false; task.wait(0.12); UpdateScrollCanvas()
                 else
@@ -1114,14 +1162,13 @@ function NNVN_Hub:CreateWindow(Config)
             local Item      = {}
             local ItemCount = 0
 
-            -- Helper: common frame
             local function MakeItemFrame(height)
                 local f = Custom:Create("Frame", {
                     BackgroundColor3     = Color3.fromRGB(255,255,255),
                     BackgroundTransparency = 0.94,
                     BorderSizePixel      = 0,
                     LayoutOrder          = ItemCount,
-                    Size                 = UDim2.new(1,0,0,height),
+                    Size                 = UDim2.new(1,0,0,height*sc),
                 }, SectionAdd)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,4)}, f)
                 return f
@@ -1136,22 +1183,22 @@ function NNVN_Hub:CreateWindow(Config)
 
                 local PT = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_HI,
-                    TextSize=13, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                    TextSize=13*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                     BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,10), Size=UDim2.new(1,-16,0,13), Name="PT"
+                    Position=UDim2.new(0,10*sc,0,10*sc), Size=UDim2.new(1,-16*sc,0,13*sc), Name="PT"
                 }, P)
                 local PC = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Content, TextColor3=TEXT_LO,
-                    TextSize=12, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                    TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                     TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,24), Size=UDim2.new(1,-16,0,12), Name="PC"
+                    Position=UDim2.new(0,10*sc,0,24*sc), Size=UDim2.new(1,-16*sc,0,12*sc), Name="PC"
                 }, P)
 
                 local function Resize()
                     PC.TextWrapped = false
                     local lines = math.ceil(PC.TextBounds.X / math.max(PC.AbsoluteSize.X,1))
-                    PC.Size = UDim2.new(1,-16,0,12+(12*lines))
-                    P.Size  = UDim2.new(1,0,0, PC.AbsoluteSize.Y+33)
+                    PC.Size = UDim2.new(1,-16*sc,0,12*sc+(12*sc*lines))
+                    P.Size  = UDim2.new(1,0,0, PC.AbsoluteSize.Y+33*sc)
                     PC.TextWrapped = true
                     UpdateSectionSize()
                 end
@@ -1174,9 +1221,9 @@ function NNVN_Hub:CreateWindow(Config)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,6)}, S)
                 local ST = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_HI,
-                    TextSize=13, TextXAlignment=Enum.TextXAlignment.Left,
+                    TextSize=13*sc, TextXAlignment=Enum.TextXAlignment.Left,
                     BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,12,0,0), Size=UDim2.new(1,-16,1,0),
+                    Position=UDim2.new(0,12*sc,0,0), Size=UDim2.new(1,-16*sc,1,0),
                 }, S)
                 function SF:Set(C) ST.Text = C[1] or C.Title or "" end
                 ItemCount += 1; return SF
@@ -1188,28 +1235,27 @@ function NNVN_Hub:CreateWindow(Config)
                     BackgroundTransparency = 0.35,
                     BorderSizePixel      = 0,
                     LayoutOrder          = ItemCount,
-                    Size                 = UDim2.new(1,0,0,6),
+                    Size                 = UDim2.new(1,0,0,6*sc),
                 }, SectionAdd)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,3)}, L)
                 ItemCount += 1; return {}
             end
 
-            -- ── AddImage (new) ──────────────────────────────────
             function Item:AddImage(Config)
                 local Url    = Config[1] or Config.Url    or ""
                 local Height = Config[2] or Config.Height or 80
                 local Title  = Config[3] or Config.Title  or ""
                 local SF     = {}
 
-                local F = MakeItemFrame(Height + (Title~="" and 22 or 4))
+                local F = MakeItemFrame(Height*sc + (Title~="" and 22*sc or 4*sc))
                 F.Name = "ImageItem"
 
                 if Title ~= "" then
                     Custom:Create("TextLabel", {
                         Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_LO,
-                        TextSize=11, TextXAlignment=Enum.TextXAlignment.Left,
+                        TextSize=11*sc, TextXAlignment=Enum.TextXAlignment.Left,
                         BackgroundTransparency=1, BorderSizePixel=0,
-                        Position=UDim2.new(0,8,0,4), Size=UDim2.new(1,-16,0,14),
+                        Position=UDim2.new(0,8*sc,0,4*sc), Size=UDim2.new(1,-16*sc,0,14*sc),
                     }, F)
                 end
 
@@ -1218,8 +1264,8 @@ function NNVN_Hub:CreateWindow(Config)
                     BackgroundTransparency = 1,
                     BorderSizePixel  = 0,
                     ScaleType        = Enum.ScaleType.Fit,
-                    Position         = UDim2.new(0,8, 0, Title~="" and 20 or 4),
-                    Size             = UDim2.new(1,-16,0, Height),
+                    Position         = UDim2.new(0,8*sc, 0, Title~="" and 20*sc or 4*sc),
+                    Size             = UDim2.new(1,-16*sc,0, Height*sc),
                     Name             = "ImageLabel"
                 }, F)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,4)}, IL)
@@ -1238,20 +1284,20 @@ function NNVN_Hub:CreateWindow(Config)
                 local B  = MakeItemFrame(35); B.Name = "Button"
                 Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_HI,
-                    TextSize=13, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                    TextSize=13*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                     BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,10), Size=UDim2.new(1,-90,0,13), Name="BT"
+                    Position=UDim2.new(0,10*sc,0,10*sc), Size=UDim2.new(1,-90*sc,0,13*sc), Name="BT"
                 }, B)
                 local BC = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Content, TextColor3=TEXT_LO,
-                    TextSize=12, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
+                    TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
                     TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,23), Size=UDim2.new(1,-90,0,12), Name="BC"
+                    Position=UDim2.new(0,10*sc,0,23*sc), Size=UDim2.new(1,-90*sc,0,12*sc), Name="BC"
                 }, B)
                 local function UpdB()
                     BC.TextWrapped = false
-                    BC.Size = UDim2.new(1,-90,0,12+(12*(BC.TextBounds.X//math.max(BC.AbsoluteSize.X,1))))
-                    B.Size  = UDim2.new(1,0,0, BC.AbsoluteSize.Y+33)
+                    BC.Size = UDim2.new(1,-90*sc,0,12*sc+(12*sc*(BC.TextBounds.X//math.max(BC.AbsoluteSize.X,1))))
+                    B.Size  = UDim2.new(1,0,0, BC.AbsoluteSize.Y+33*sc)
                     BC.TextWrapped = true
                 end
                 UpdB()
@@ -1262,7 +1308,7 @@ function NNVN_Hub:CreateWindow(Config)
                 }, B)
                 local IFrame = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(1,-12,0.5,0), Size=UDim2.new(0,22,0,22)
+                    Position=UDim2.new(1,-12*sc,0.5,0), Size=UDim2.new(0,22*sc,0,22*sc)
                 }, B)
                 Custom:Create("ImageLabel", {
                     Image=Icon, ImageColor3=ACCENT, AnchorPoint=Vector2.new(0.5,0.5),
@@ -1282,23 +1328,28 @@ function NNVN_Hub:CreateWindow(Config)
                 local Callback = Config[4] or Config.Callback or function() end
                 local FT       = {Value = Default}
 
+                -- Tạo key lưu: Tên của toggle
+                local saveKey = "Toggle_" .. Title
+                Default = NNVN_Hub:LoadValue(saveKey, Default)
+                FT.Value = Default
+
                 local T = MakeItemFrame(35); T.Name = "Toggle"
                 local TT = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_HI,
-                    TextSize=13, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                    TextSize=13*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                     BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,10), Size=UDim2.new(1,-90,0,13), Name="TT"
+                    Position=UDim2.new(0,10*sc,0,10*sc), Size=UDim2.new(1,-90*sc,0,13*sc), Name="TT"
                 }, T)
                 local TC = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Content, TextColor3=TEXT_LO,
-                    TextSize=12, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
+                    TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
                     TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,23), Size=UDim2.new(1,-90,0,12), Name="TC"
+                    Position=UDim2.new(0,10*sc,0,23*sc), Size=UDim2.new(1,-90*sc,0,12*sc), Name="TC"
                 }, T)
                 local function UpdT()
                     TC.TextWrapped = false
-                    TC.Size = UDim2.new(1,-90,0,12+(12*math.ceil(TC.TextBounds.X/math.max(TC.AbsoluteSize.X,1))))
-                    T.Size  = UDim2.new(1,0,0, TC.AbsoluteSize.Y+33)
+                    TC.Size = UDim2.new(1,-90*sc,0,12*sc+(12*sc*math.ceil(TC.TextBounds.X/math.max(TC.AbsoluteSize.X,1))))
+                    T.Size  = UDim2.new(1,0,0, TC.AbsoluteSize.Y+33*sc)
                     TC.TextWrapped = true
                 end
                 UpdT()
@@ -1311,21 +1362,21 @@ function NNVN_Hub:CreateWindow(Config)
                 local Track = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(1,0.5), BackgroundColor3=Color3.fromRGB(255,255,255),
                     BackgroundTransparency=0.9, BorderSizePixel=0,
-                    Position=UDim2.new(1,-12,0.5,0), Size=UDim2.new(0,30,0,15),
+                    Position=UDim2.new(1,-12*sc,0.5,0), Size=UDim2.new(0,30*sc,0,15*sc),
                 }, T)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,4)}, Track)
                 local TrkStroke = Custom:Create("UIStroke", {Color=ACCENT_DIM, Thickness=1.5, Transparency=0.7}, Track)
 
                 local Knob = Custom:Create("Frame", {
                     BackgroundColor3=Color3.fromRGB(200,200,200), BorderSizePixel=0,
-                    Position=UDim2.new(0,0,0,0), Size=UDim2.new(0,14,0,14),
+                    Position=UDim2.new(0,0,0,0), Size=UDim2.new(0,14*sc,0,14*sc),
                 }, Track)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,15)}, Knob)
 
                 local function Animate(on)
                     local ti = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
                     TweenService:Create(TT,       ti, {TextColor3 = on and ACCENT or TEXT_HI}):Play()
-                    TweenService:Create(Knob,     ti, {Position   = on and UDim2.new(0,15,0,0) or UDim2.new(0,0,0,0),
+                    TweenService:Create(Knob,     ti, {Position   = on and UDim2.new(0,15*sc,0,0) or UDim2.new(0,0,0,0),
                                                        BackgroundColor3 = on and ACCENT or Color3.fromRGB(200,200,200)}):Play()
                     TweenService:Create(TrkStroke,ti, {Color=on and ACCENT or ACCENT_DIM, Transparency=on and 0.1 or 0.7}):Play()
                     TweenService:Create(Track,    ti, {BackgroundTransparency = on and 0.65 or 0.9}):Play()
@@ -1333,9 +1384,15 @@ function NNVN_Hub:CreateWindow(Config)
 
                 TB.Activated:Connect(function()
                     CircleClick(TB, Player:GetMouse().X, Player:GetMouse().Y)
-                    FT.Value = not FT.Value; FT:Set(FT.Value)
+                    FT.Value = not FT.Value
+                    FT:Set(FT.Value)
                 end)
-                function FT:Set(v) Callback(v); Animate(v) end
+                function FT:Set(v)
+                    FT.Value = v
+                    Animate(v)
+                    Callback(v)
+                    NNVN_Hub:SaveValue(saveKey, v)
+                end
                 FT:Set(FT.Value)
                 ItemCount += 1; return FT
             end
@@ -1350,52 +1407,56 @@ function NNVN_Hub:CreateWindow(Config)
                 local Callback = Config[7] or Config.Callback or function() end
                 local FS       = {Value = Default}
 
+                local saveKey = "Slider_" .. Title
+                Default = NNVN_Hub:LoadValue(saveKey, Default)
+                FS.Value = Default
+
                 local S = MakeItemFrame(35); S.Name = "Slider"
                 Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_HI,
-                    TextSize=13, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                    TextSize=13*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                     BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,10), Size=UDim2.new(1,-180,0,13),
+                    Position=UDim2.new(0,10*sc,0,10*sc), Size=UDim2.new(1,-180*sc,0,13*sc),
                 }, S)
                 local SC = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Content, TextColor3=TEXT_LO,
-                    TextSize=12, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
+                    TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
                     TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,23), Size=UDim2.new(1,-180,0,12),
+                    Position=UDim2.new(0,10*sc,0,23*sc), Size=UDim2.new(1,-180*sc,0,12*sc),
                 }, S)
                 local function UpdS()
                     SC.TextWrapped=false
-                    SC.Size=UDim2.new(1,-180,0,12+(12*math.floor(SC.TextBounds.X/math.max(SC.AbsoluteSize.X,1))))
-                    S.Size=UDim2.new(1,0,0,SC.AbsoluteSize.Y+33); SC.TextWrapped=true
+                    SC.Size=UDim2.new(1,-180*sc,0,12*sc+(12*sc*math.floor(SC.TextBounds.X/math.max(SC.AbsoluteSize.X,1))))
+                    S.Size=UDim2.new(1,0,0,SC.AbsoluteSize.Y+33*sc); SC.TextWrapped=true
                 end
                 UpdS(); SC:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() UpdS(); UpdateSectionSize() end)
 
                 local InputFrame = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(0,0.5), BackgroundColor3=ACCENT_DIM,
                     BackgroundTransparency=0.4, BorderSizePixel=0,
-                    Position=UDim2.new(1,-155,0.5,0), Size=UDim2.new(0,30,0,19),
+                    Position=UDim2.new(1,-155*sc,0.5,0), Size=UDim2.new(0,30*sc,0,19*sc),
                 }, S)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,3)}, InputFrame)
                 local TB = Custom:Create("TextBox", {
                     Font=Enum.Font.GothamBold, Text=tostring(Default), TextColor3=TEXT_HI,
-                    TextSize=12, TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
+                    TextSize=12*sc, TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
                     Size=UDim2.new(1,0,1,0),
                 }, InputFrame)
 
                 local Track = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(1,0.5), BackgroundColor3=Color3.fromRGB(255,255,255),
                     BackgroundTransparency=0.82, BorderSizePixel=0,
-                    Position=UDim2.new(1,-18,0.5,0), Size=UDim2.new(0,100,0,3),
+                    Position=UDim2.new(1,-18*sc,0.5,0), Size=UDim2.new(0,100*sc,0,3*sc),
                 }, S)
                 Custom:Create("UICorner", {}, Track)
                 local Fill = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(0,0.5), BackgroundColor3=ACCENT,
-                    BorderSizePixel=0, Position=UDim2.new(0,0,0.5,0), Size=UDim2.new(0.5,0,0,3),
+                    BorderSizePixel=0, Position=UDim2.new(0,0,0.5,0), Size=UDim2.new(0.5,0,0,3*sc),
                 }, Track)
                 Custom:Create("UICorner", {}, Fill)
                 local Knob = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(1,0.5), BackgroundColor3=ACCENT,
-                    BorderSizePixel=0, Position=UDim2.new(1,3,0.5,0), Size=UDim2.new(0,8,0,8),
+                    BorderSizePixel=0, Position=UDim2.new(1,3*sc,0.5,0), Size=UDim2.new(0,8*sc,0,8*sc),
                 }, Fill)
                 Custom:Create("UICorner", {}, Knob)
                 Custom:Create("UIStroke", {Color=ACCENT_DIM}, Knob)
@@ -1406,6 +1467,8 @@ function NNVN_Hub:CreateWindow(Config)
                     v=math.clamp(Round(v,Increment),Min,Max); FS.Value=v; TB.Text=tostring(v)
                     TweenService:Create(Fill,TweenInfo.new(0.08,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
                         {Size=UDim2.fromScale((v-Min)/(Max-Min),1)}):Play()
+                    NNVN_Hub:SaveValue(saveKey, v)
+                    Callback(v)
                 end
                 Track.InputBegan:Connect(function(i)
                     if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
@@ -1420,8 +1483,8 @@ function NNVN_Hub:CreateWindow(Config)
                     if Dragging then
                         local cx=i.Position.X
                         if cx~=_lx then _lx=cx
-                            local sc=math.clamp((cx-Track.AbsolutePosition.X)/Track.AbsoluteSize.X,0,1)
-                            FS:Set(Min+((Max-Min)*sc))
+                            local sc2=math.clamp((cx-Track.AbsolutePosition.X)/Track.AbsoluteSize.X,0,1)
+                            FS:Set(Min+((Max-Min)*sc2))
                         end
                     end
                 end)
@@ -1432,7 +1495,7 @@ function NNVN_Hub:CreateWindow(Config)
                 TB.FocusLost:Connect(function()
                     FS:Set(tonumber(TB.Text) or 0); Callback(FS.Value)
                 end)
-                FS:Set(Default); Callback(FS.Value)
+                FS:Set(Default)
                 ItemCount+=1; return FS
             end
 
@@ -1443,41 +1506,48 @@ function NNVN_Hub:CreateWindow(Config)
                 local Callback = Config[4] or Config.Callback or function() end
                 local FI       = {Value = Default}
 
+                local saveKey = "Input_" .. Title
+                Default = NNVN_Hub:LoadValue(saveKey, Default)
+                FI.Value = Default
+
                 local F = MakeItemFrame(35); F.Name = "Input"
                 Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_HI,
-                    TextSize=13, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                    TextSize=13*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                     BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,10), Size=UDim2.new(1,-180,0,13),
+                    Position=UDim2.new(0,10*sc,0,10*sc), Size=UDim2.new(1,-180*sc,0,13*sc),
                 }, F)
                 local FC = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Content, TextColor3=TEXT_LO,
-                    TextSize=12, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
+                    TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
                     TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,23), Size=UDim2.new(1,-180,0,12),
+                    Position=UDim2.new(0,10*sc,0,23*sc), Size=UDim2.new(1,-180*sc,0,12*sc),
                 }, F)
                 local function UpdI()
                     FC.TextWrapped=false
-                    FC.Size=UDim2.new(1,-180,0,12+(12*math.floor(FC.TextBounds.X/math.max(FC.AbsoluteSize.X,1))))
-                    F.Size=UDim2.new(1,0,0,FC.AbsoluteSize.Y+33); FC.TextWrapped=true
+                    FC.Size=UDim2.new(1,-180*sc,0,12*sc+(12*sc*math.floor(FC.TextBounds.X/math.max(FC.AbsoluteSize.X,1))))
+                    F.Size=UDim2.new(1,0,0,FC.AbsoluteSize.Y+33*sc); FC.TextWrapped=true
                 end
                 UpdI(); FC:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() UpdI(); UpdateSectionSize() end)
 
                 local IBox = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(1,0.5), BackgroundColor3=Color3.fromRGB(255,255,255),
                     BackgroundTransparency=0.94, BorderSizePixel=0,
-                    ClipsDescendants=true, Position=UDim2.new(1,-7,0.5,0), Size=UDim2.new(0,148,0,28),
+                    ClipsDescendants=true, Position=UDim2.new(1,-7*sc,0.5,0), Size=UDim2.new(0,148*sc,0,28*sc),
                 }, F)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,4)}, IBox)
                 Custom:Create("UIStroke", {Color=ACCENT_DIM, Thickness=0.8, Transparency=0.5}, IBox)
                 local ITB = Custom:Create("TextBox", {
                     Font=Enum.Font.GothamBold, PlaceholderColor3=TEXT_LO,
                     PlaceholderText=Custom:T("WriteInput"),
-                    Text="", TextColor3=TEXT_HI, TextSize=12, TextXAlignment=Enum.TextXAlignment.Left,
+                    Text=Default, TextColor3=TEXT_HI, TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left,
                     AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,6,0.5,0), Size=UDim2.new(1,-10,1,-8),
+                    Position=UDim2.new(0,6*sc,0.5,0), Size=UDim2.new(1,-10*sc,1,-8*sc),
                 }, IBox)
-                function FI:Set(v) ITB.Text=v; FI.Value=v; Callback(v) end
+                -- Đăng ký label để cập nhật ngôn ngữ
+                Custom:RegisterLanguageLabel(ITB, "WriteInput")
+
+                function FI:Set(v) ITB.Text=v; FI.Value=v; Callback(v); NNVN_Hub:SaveValue(saveKey, v) end
                 ITB.FocusLost:Connect(function() FI:Set(ITB.Text) end)
                 FI:Set(Default)
                 ItemCount+=1; return FI
@@ -1492,6 +1562,12 @@ function NNVN_Hub:CreateWindow(Config)
                 local Callback = Config[6] or Config.Callback or function() end
                 local FD       = {Value=Default, Options=Options}
 
+                local saveKey = "Dropdown_" .. Title
+                local loaded = NNVN_Hub:LoadValue(saveKey, nil)
+                if loaded then
+                    FD.Value = loaded
+                end
+
                 local D = MakeItemFrame(35); D.Name = "Dropdown"
                 local DBtn = Custom:Create("TextButton", {
                     Text="", BackgroundTransparency=1, BorderSizePixel=0,
@@ -1499,29 +1575,29 @@ function NNVN_Hub:CreateWindow(Config)
                 }, D)
                 Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Title, TextColor3=TEXT_HI,
-                    TextSize=13, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                    TextSize=13*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                     BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,10), Size=UDim2.new(1,-180,0,13),
+                    Position=UDim2.new(0,10*sc,0,10*sc), Size=UDim2.new(1,-180*sc,0,13*sc),
                 }, D)
                 local DC = Custom:Create("TextLabel", {
                     Font=Enum.Font.GothamBold, Text=Content, TextColor3=TEXT_LO,
-                    TextSize=12, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
+                    TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Bottom,
                     TextWrapped=true, BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,10,0,23), Size=UDim2.new(1,-180,0,12),
+                    Position=UDim2.new(0,10*sc,0,23*sc), Size=UDim2.new(1,-180*sc,0,12*sc),
                 }, D)
-                DC.Size=UDim2.new(1,-180,0,12+(12*(DC.TextBounds.X//math.max(DC.AbsoluteSize.X,1))))
+                DC.Size=UDim2.new(1,-180*sc,0,12*sc+(12*sc*(DC.TextBounds.X//math.max(DC.AbsoluteSize.X,1))))
                 DC.TextWrapped=true
-                D.Size=UDim2.new(1,0,0,DC.AbsoluteSize.Y+33)
+                D.Size=UDim2.new(1,0,0,DC.AbsoluteSize.Y+33*sc)
                 DC:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
                     DC.TextWrapped=false
-                    DC.Size=UDim2.new(1,-180,0,12+(12*(DC.TextBounds.X//math.max(DC.AbsoluteSize.X,1))))
-                    D.Size=UDim2.new(1,0,0,DC.AbsoluteSize.Y+33); DC.TextWrapped=true; UpdateSectionSize()
+                    DC.Size=UDim2.new(1,-180*sc,0,12*sc+(12*sc*(DC.TextBounds.X//math.max(DC.AbsoluteSize.X,1))))
+                    D.Size=UDim2.new(1,0,0,DC.AbsoluteSize.Y+33*sc); DC.TextWrapped=true; UpdateSectionSize()
                 end)
 
                 local SOF = Custom:Create("Frame", {
                     AnchorPoint=Vector2.new(1,0.5), BackgroundColor3=Color3.fromRGB(255,255,255),
                     BackgroundTransparency=0.94, BorderSizePixel=0,
-                    Position=UDim2.new(1,-7,0.5,0), Size=UDim2.new(0,148,0,28),
+                    Position=UDim2.new(1,-7*sc,0.5,0), Size=UDim2.new(0,148*sc,0,28*sc),
                     Name="SelectOptionsFrame", LayoutOrder=CountDD,
                 }, D)
                 Custom:Create("UICorner", {CornerRadius=UDim.new(0,4)}, SOF)
@@ -1533,20 +1609,23 @@ function NNVN_Hub:CreateWindow(Config)
                         DropPageLayout:JumpToIndex(SOF.LayoutOrder)
                         local ti=TweenInfo.new(0.12)
                         TweenService:Create(MoreBlur,       ti,{BackgroundTransparency=0.68}):Play()
-                        TweenService:Create(DropdownSelect, ti,{Position=UDim2.new(1,-11,0.5,0)}):Play()
+                        TweenService:Create(DropdownSelect, ti,{Position=UDim2.new(1,-11*sc,0.5,0)}):Play()
                     end
                 end)
 
                 local SelLabel = Custom:Create("TextLabel", {
-                    Font=Enum.Font.GothamBold, Text="", TextColor3=TEXT_LO,
-                    TextSize=11, TextWrapped=true, TextXAlignment=Enum.TextXAlignment.Left,
+                    Font=Enum.Font.GothamBold, Text=Custom:T("SelectOptions"), TextColor3=TEXT_LO,
+                    TextSize=11*sc, TextWrapped=true, TextXAlignment=Enum.TextXAlignment.Left,
                     AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(0,5,0.5,0), Size=UDim2.new(1,-28,1,-6),
+                    Position=UDim2.new(0,5*sc,0.5,0), Size=UDim2.new(1,-28*sc,1,-6*sc),
                 }, SOF)
+                -- Đăng ký để cập nhật ngôn ngữ
+                Custom:RegisterLanguageLabel(SelLabel, "SelectOptions")
+
                 Custom:Create("ImageLabel", {
                     Image="rbxassetid://90200523188815", ImageColor3=ACCENT_DIM,
                     AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency=1, BorderSizePixel=0,
-                    Position=UDim2.new(1,0,0.5,0), Size=UDim2.new(0,22,0,22),
+                    Position=UDim2.new(1,0,0.5,0), Size=UDim2.new(0,22*sc,0,22*sc),
                 }, SOF)
 
                 local ScrollSel = Custom:Create("ScrollingFrame", {
@@ -1554,14 +1633,16 @@ function NNVN_Hub:CreateWindow(Config)
                     LayoutOrder=CountDD, BackgroundTransparency=1, BorderSizePixel=0,
                     Size=UDim2.new(1,0,1,0), Name="ScrollSelect",
                 }, DropdownFolder)
-                Custom:Create("UIListLayout", {Padding=UDim.new(0,3), SortOrder=Enum.SortOrder.LayoutOrder}, ScrollSel)
+                Custom:Create("UIListLayout", {Padding=UDim.new(0,3*sc), SortOrder=Enum.SortOrder.LayoutOrder}, ScrollSel)
 
                 local SearchBar = Custom:Create("TextBox", {
                     Font=Enum.Font.GothamBold, PlaceholderText=Custom:T("Search"),
-                    PlaceholderColor3=TEXT_LO, Text="", TextColor3=TEXT_HI, TextSize=11,
+                    PlaceholderColor3=TEXT_LO, Text="", TextColor3=TEXT_HI, TextSize=11*sc,
                     BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=0.88,
-                    BorderSizePixel=0, Size=UDim2.new(1,0,0,20), Name="SearchBar"
+                    BorderSizePixel=0, Size=UDim2.new(1,0,0,20*sc), Name="SearchBar"
                 }, ScrollSel)
+                Custom:RegisterLanguageLabel(SearchBar, "Search")
+
                 SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
                     local q=string.lower(SearchBar.Text)
                     for _, v in pairs(ScrollSel:GetChildren()) do
@@ -1588,20 +1669,21 @@ function NNVN_Hub:CreateWindow(Config)
                             local ti=TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut)
                             TweenService:Create(Op,ti,{BackgroundTransparency=found and 0.88 or 0.999}):Play()
                             if Op:FindFirstChild("ChooseFrame") then
-                                TweenService:Create(Op.ChooseFrame,ti,{Size=found and UDim2.new(0,2,0,12) or UDim2.new(0,0,0,0)}):Play()
+                                TweenService:Create(Op.ChooseFrame,ti,{Size=found and UDim2.new(0,2*sc,0,12*sc) or UDim2.new(0,0,0,0)}):Play()
                             end
                         end
                     end
                     local joined=table.concat(FD.Value,", ")
                     SelLabel.Text = joined~="" and joined or Custom:T("SelectOptions")
                     Callback(FD.Value)
+                    NNVN_Hub:SaveValue(saveKey, FD.Value)
                 end
 
                 function FD:AddOption(Name)
                     Name = Name or "Option"
                     local Op = Custom:Create("Frame", {
                         BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.999,
-                        BorderSizePixel=0, LayoutOrder=DropCnt, Size=UDim2.new(1,0,0,28), Name="Option"
+                        BorderSizePixel=0, LayoutOrder=DropCnt, Size=UDim2.new(1,0,0,28*sc), Name="Option"
                     }, ScrollSel)
                     Custom:Create("UICorner", {CornerRadius=UDim.new(0,3)}, Op)
                     local OBtn = Custom:Create("TextButton", {
@@ -1609,13 +1691,13 @@ function NNVN_Hub:CreateWindow(Config)
                     }, Op)
                     Custom:Create("TextLabel", {
                         Font=Enum.Font.GothamBold, Text=Name, TextColor3=TEXT_HI,
-                        TextSize=12, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
+                        TextSize=12*sc, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top,
                         BackgroundTransparency=1, BorderSizePixel=0,
-                        Position=UDim2.new(0,8,0,7), Size=UDim2.new(1,-40,0,13), Name="OptionText"
+                        Position=UDim2.new(0,8*sc,0,7*sc), Size=UDim2.new(1,-40*sc,0,13*sc), Name="OptionText"
                     }, Op)
                     local CF = Custom:Create("Frame", {
                         AnchorPoint=Vector2.new(0,0.5), BackgroundColor3=ACCENT,
-                        BorderSizePixel=0, Position=UDim2.new(0,2,0.5,0), Size=UDim2.new(0,0,0,0), Name="ChooseFrame"
+                        BorderSizePixel=0, Position=UDim2.new(0,2*sc,0.5,0), Size=UDim2.new(0,0,0,0), Name="ChooseFrame"
                     }, Op)
                     Custom:Create("UICorner", {}, CF)
                     OBtn.Activated:Connect(function()
@@ -1635,7 +1717,7 @@ function NNVN_Hub:CreateWindow(Config)
                     local function UpdCan()
                         local h=0
                         for _, c in ipairs(ScrollSel:GetChildren()) do
-                            if c.Name~="UIListLayout" and c.Name~="SearchBar" then h+=4+c.Size.Y.Offset end
+                            if c.Name~="UIListLayout" and c.Name~="SearchBar" then h+=4*sc+c.Size.Y.Offset end
                         end
                         ScrollSel.CanvasSize=UDim2.new(0,0,0,h)
                     end
@@ -1662,11 +1744,12 @@ function NNVN_Hub:CreateWindow(Config)
     return Tabs
 end
 
--- Global language setter
-function NNVN_Hub:SetLanguage(lang) Custom:SetLanguage(lang) end
+function NNVN_Hub:SetLanguage(lang)
+    Custom:SetLanguage(lang)
+end
 
 -- ============================================================
--- FuncsV3 helper
+-- FuncsV3 helper (giữ nguyên)
 -- ============================================================
 local FuncsV3  = {}
 local SaveConf = nil
