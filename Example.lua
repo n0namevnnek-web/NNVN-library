@@ -1,6 +1,6 @@
 --[[
-    NNVN Lib v1.4.1 — Example
-    Redz-style Darker · Acrylic independent of BgImage · WindUI-like Tags
+    NNVN Lib v1.4.3 — Example
+    Redz-style Darker · WindUI Tags · User panel (Anonymous) bottom-left
 ]]
 
 local Library = loadstring(game:HttpGet(
@@ -8,15 +8,26 @@ local Library = loadstring(game:HttpGet(
 ))()
 
 Library.Default.Language = "en"
--- Theme default is Darker (redz-like)
 
 local Window = Library:MakeWindow({
     Title = "NNVN Hub",
-    SubTitle = "v1.4.1",
+    SubTitle = "v1.4.3",
     ScriptFolder = "NNVNHub",
     BackgroundImage = "10709752996",
-    BackgroundImageTransparency = 0.6,
-    Acrylic = false, -- turn on/off anytime; bg image stays
+    BackgroundImageTransparency = 0.72,
+    Acrylic = false,
+    -- WindUI-style user panel (bottom-left of sidebar)
+    User = {
+        Enabled = true,
+        Anonymous = true, -- true = hide real name/avatar
+        Callback = function()
+            Window:Notify({
+                Title = "User",
+                Content = "Clicked profile (Anonymous = " .. tostring(Window.User.Anonymous) .. ")",
+                Duration = 2.5
+            })
+        end
+    }
 })
 
 Window:NewMinimizer(Enum.KeyCode.RightControl)
@@ -27,9 +38,9 @@ Window:CreateOpenButton({
     Icon = "10734896206"
 })
 
--- WindUI-style tags
+-- WindUI-style tags (top center)
 Window:AddTag({ Title = "BETA" })
-Window:AddTag({ Title = "v1.4", Color = Color3.fromRGB(88, 101, 242) })
+Window:AddTag({ Title = "v1.4.3", Color = Color3.fromRGB(88, 101, 242) })
 
 local Main = Window:MakeTab({ Title = "Main", Icon = "home" })
 Main:AddSection("Combat")
@@ -68,6 +79,19 @@ Main:AddButton({
     end
 })
 
+Main:AddButton({
+    Title = "Toggle Anonymous",
+    Description = "Show / hide real player name",
+    Callback = function()
+        Window.User:ToggleAnonymous()
+        Window:Notify({
+            Title = "Anonymous",
+            Content = tostring(Window.User.Anonymous),
+            Duration = 2
+        })
+    end
+})
+
 local Settings = Window:MakeTab({ Title = "Settings", Icon = "settings" })
 Settings:AddSection("Appearance")
 
@@ -86,6 +110,22 @@ Settings:AddToggle({
     Callback = function(v) Window:SetAcrylic(v) end
 })
 
+Settings:AddToggle({
+    Title = "Show User Panel",
+    Description = "Bottom-left player info",
+    Default = true,
+    Callback = function(v)
+        if v then Window.User:Enable() else Window.User:Disable() end
+    end
+})
+
+Settings:AddToggle({
+    Title = "Anonymous",
+    Description = "Hide real name & avatar",
+    Default = true,
+    Callback = function(v) Window.User:SetAnonymous(v) end
+})
+
 Settings:AddTextBox({
     Title = "Background Image ID",
     Description = "Number only — works with or without Acrylic",
@@ -96,7 +136,7 @@ Settings:AddTextBox({
 
 Settings:AddSlider({
     Title = "Bg Transparency",
-    Min = 0, Max = 1, Increment = 0.05, Default = 0.6,
+    Min = 0, Max = 1, Increment = 0.05, Default = 0.72,
     Callback = function(v) Window:SetBackgroundImageTransparency(v) end
 })
 
@@ -107,4 +147,4 @@ Settings:AddSlider({
     Callback = function(v) Library:SetUIScale(v) end
 })
 
-print("[NNVN] v1.4.1 loaded | Theme:", Library:GetCurrentTheme().Name)
+print("[NNVN] v1.4.3 loaded | Theme:", Library:GetCurrentTheme().Name)
