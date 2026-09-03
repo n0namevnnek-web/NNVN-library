@@ -1,9 +1,9 @@
 --[[
     NNVN Hub UI Library (Gray/White Edition)
     ==========================================
-    • Hỗ trợ scale cho điện thoại (0.65)
-    • Đổi ngôn ngữ mượt mà (cập nhật ngay)
-    • SaveManager tự động lưu mọi thay đổi
+    • Mobile scale = 0.5 (nhỏ hơn 2 lần so với PC)
+    • Tự động lưu cài đặt (SaveManager)
+    • Đổi ngôn ngữ tức thì (en/vi)
     • Hỗ trợ background qua rbxassetid
 ]]
 
@@ -31,7 +31,7 @@ local TEXT_LO     = Color3.fromRGB(140, 140, 140)
 local Custom = {}
 Custom.ColorRGB = ACCENT
 Custom.Language = "en"
-Custom.Scale    = 1  -- sẽ được set dựa trên mobile
+Custom.Scale    = 1
 
 Custom.Translations = {
     en = {
@@ -58,12 +58,10 @@ end
 function Custom:SetLanguage(lang)
     if lang == "vi" or lang == "en" then
         Custom.Language = lang
-        -- Cập nhật tất cả các label trong GUI hiện tại
         Custom:UpdateLanguage()
     end
 end
 
--- Lưu tham chiếu các label cần cập nhật
 Custom._languageLabels = {}
 
 function Custom:RegisterLanguageLabel(label, key)
@@ -423,7 +421,6 @@ local function SaveSettings()
 end
 LoadSettings()
 
--- Hàm hỗ trợ lưu/load cho từng control
 function NNVN_Hub:SaveValue(key, value)
     Settings[key] = value
     SaveSettings()
@@ -446,24 +443,33 @@ function NNVN_Hub:CreateWindow(Config)
     local Language = Config.Language or Config[5] or "en"
     Custom:SetLanguage(Language)
 
+    -- Xác định mobile và scale
     local IsMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
     if not IsMobile then
         local cam = workspace.CurrentCamera
         if cam and cam.ViewportSize.X < 700 then IsMobile = true end
     end
 
-    -- Scale cho mobile
+    local sc
+    local DefaultSize
+    local WindowMinSize, WindowMaxSize
     if IsMobile then
-        Custom.Scale = 0.65
+        sc = 0.5   -- nhỏ hơn 2 lần so với PC
+        DefaultSize = UDim2.fromOffset(350, 210)  -- kích thước khung
+        WindowMinSize = Config.MinSize or Vector2.new(300, 180)
+        WindowMaxSize = Config.MaxSize or Vector2.new(500, 350)
     else
-        Custom.Scale = 1
+        sc = 1
+        DefaultSize = UDim2.fromOffset(700, 420)
+        WindowMinSize = Config.MinSize or Vector2.new(480, 300)
+        WindowMaxSize = Config.MaxSize or Vector2.new(1100, 720)
     end
-    local sc = Custom.Scale
+    Custom.Scale = sc
 
-    local DefaultSize    = IsMobile and UDim2.fromOffset(300*sc, 230*sc) or UDim2.fromOffset(700, 420)
-    local SizeUi         = Config[4] or Config.SizeUi or DefaultSize
-    local WindowMinSize  = Config.MinSize or (IsMobile and Vector2.new(260*sc,200*sc) or Vector2.new(480,300))
-    local WindowMaxSize  = Config.MaxSize or (IsMobile and Vector2.new(480*sc,380*sc) or Vector2.new(1100,720))
+    -- Nếu người dùng có truyền SizeUi, dùng nó, ngược lại dùng DefaultSize
+    local SizeUi = Config[4] or Config.SizeUi or DefaultSize
+    -- Áp dụng scale cho TabWidth nếu muốn
+    local TabWidthScaled = TabWidth * sc
 
     local NNGui = Custom:Create("ScreenGui", {ZIndexBehavior = Enum.ZIndexBehavior.Sibling},
         RunService:IsStudio() and Player.PlayerGui
@@ -491,7 +497,6 @@ function NNVN_Hub:CreateWindow(Config)
         Name               = "Shadow"
     }, ShadowHolder)
 
-    -- Main frame (có thể đặt background image)
     local Main = Custom:Create("Frame", {
         AnchorPoint        = Vector2.new(0.5,0.5),
         BackgroundColor3   = BG_MAIN,
@@ -505,7 +510,7 @@ function NNVN_Hub:CreateWindow(Config)
     Custom:Create("UICorner", {}, Main)
     Custom:Create("UIStroke", {Color = Color3.fromRGB(55,55,55), Thickness = 1.4}, Main)
 
-    -- Background image (nếu có)
+    -- Background image
     local bgId = Config.BackgroundAssetId or Config.Background
     if bgId and tonumber(bgId) then
         local bg = Custom:Create("ImageLabel", {
@@ -518,7 +523,6 @@ function NNVN_Hub:CreateWindow(Config)
             Name = "BackgroundImage",
             ZIndex = 0,
         }, Main)
-        -- Đảm bảo các thành phần khác nằm trên
         for _, child in ipairs(Main:GetChildren()) do
             if child ~= bg then child.ZIndex = child.ZIndex + 1 end
         end
@@ -1328,7 +1332,6 @@ function NNVN_Hub:CreateWindow(Config)
                 local Callback = Config[4] or Config.Callback or function() end
                 local FT       = {Value = Default}
 
-                -- Tạo key lưu: Tên của toggle
                 local saveKey = "Toggle_" .. Title
                 Default = NNVN_Hub:LoadValue(saveKey, Default)
                 FT.Value = Default
@@ -1544,7 +1547,6 @@ function NNVN_Hub:CreateWindow(Config)
                     AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, BorderSizePixel=0,
                     Position=UDim2.new(0,6*sc,0.5,0), Size=UDim2.new(1,-10*sc,1,-8*sc),
                 }, IBox)
-                -- Đăng ký label để cập nhật ngôn ngữ
                 Custom:RegisterLanguageLabel(ITB, "WriteInput")
 
                 function FI:Set(v) ITB.Text=v; FI.Value=v; Callback(v); NNVN_Hub:SaveValue(saveKey, v) end
@@ -1619,7 +1621,6 @@ function NNVN_Hub:CreateWindow(Config)
                     AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, BorderSizePixel=0,
                     Position=UDim2.new(0,5*sc,0.5,0), Size=UDim2.new(1,-28*sc,1,-6*sc),
                 }, SOF)
-                -- Đăng ký để cập nhật ngôn ngữ
                 Custom:RegisterLanguageLabel(SelLabel, "SelectOptions")
 
                 Custom:Create("ImageLabel", {
