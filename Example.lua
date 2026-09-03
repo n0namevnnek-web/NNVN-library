@@ -1,199 +1,320 @@
 --[[
-    NNVN Hub - Example
-    By N0NAMEVN
+    NNVN Hub — Full Example (API đúng)
+    ================================
+    API:
+      Library:CreateWindow({ Title, Description, SizeUi, Language, MinSize, MaxSize, ["Tab Width"] })
+      Window:CreateTab({ Name, Icon })
+      Tab:AddSection(Title, OpenSection?)   -- KHÔNG phải CreateSection
+      Section:AddParagraph / AddSeperator / AddLine / AddButton / AddToggle / AddSlider / AddInput / AddDropdown
+      Library:SetNotification({ Title, Description, Content, Time, Delay })
+      Library:SetLanguage("vi"|"en")
+      Library.FuncsV3  -- helper + SaveConfig
+
+    Cửa sổ:
+      • 3 nút góc phải: Minimize (minus) | Maximize | Close (x)  — icon Lucide
+      • Thanh dưới (BottomBar): kéo để di chuyển UI
+      • Góc phải dưới: resize (thu phóng)
+      • Chấm trắng bên tab: đánh dấu tab đang chọn
 ]]
 
-local Library = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/n0namevnnek-web/NNVN-library/main/NNVNLib.lua"
-))()
+-- ========= LOAD LIBRARY =========
+-- Đổi sang link raw / readfile của bạn:
+local Library = loadstring(game:HttpGet("YOUR_RAW_URL_NNVN_Hub.lua"))()
+-- local Library = loadstring(readfile("NNVN_Hub.lua"))()
 
+-- ========= SAVE CONFIG =========
+local SaveConfig = {
+    ["Auto Farm"] = false,
+    ["Speed Boost"] = true,
+    ["WalkSpeed"] = 50,
+    ["Weapon"] = {"Sword"},
+    ["Player Name"] = "Player1",
+}
+
+-- ========= WINDOW =========
 local Window = Library:CreateWindow({
     Title = "NNVN Hub",
-    SubTitle = "By N0NAMEVN",
+    Description = "v1.0",
+    ["Tab Width"] = 140,
+    SizeUi = UDim2.fromOffset(720, 440),
+    Language = "vi",
+    MinSize = Vector2.new(480, 300),
+    MaxSize = Vector2.new(1000, 650),
 })
 
--- ==================== MAIN ====================
-local Main = Window:CreateTab({ Title = "Main" })
+local F = Library.FuncsV3
+F:SetTable(SaveConfig)
 
-local PlayerSec = Main:CreateSection("Player")
-
-PlayerSec:AddToggle({
-    Title = "Speed Boost",
-    Description = "Tăng tốc độ di chuyển",
-    Default = false,
-    Callback = function(v)
-        print("Speed:", v)
-    end
+-- ========= TAB 1: CHÍNH =========
+local MainTab = Window:CreateTab({
+    Name = "Chính",
+    Icon = "rbxassetid://7734053426",
 })
 
-PlayerSec:AddSlider({
+-- ĐÚNG API: AddSection (không phải CreateSection)
+local MainSection = MainTab:AddSection("Tính năng chính", true)
+
+MainSection:AddParagraph({
+    Title = "Hướng dẫn cửa sổ",
+    Content = "• Kéo thanh trên hoặc thanh dưới (BottomBar) để di chuyển\n• Kéo góc phải dưới để thu phóng (resize)\n• Nút – thu nhỏ | maximize phóng to | x đóng\n• Chấm trắng = tab đang chọn",
+})
+
+MainSection:AddSeperator({ Title = "Nút & Toggle" })
+
+MainSection:AddButton({
+    Title = "Test Notification",
+    Content = "Hiện thông báo góc dưới bên trái",
+    Icon = "rbxassetid://16932740082",
+    Callback = function()
+        Library:SetNotification({
+            Title = "NNVN Hub",
+            Description = "Success",
+            Content = "Notification OK!",
+            Time = 0.4,
+            Delay = 3,
+        })
+    end,
+})
+
+F:Button(MainSection, "Kill All (Demo)", "Chỉ là ví dụ callback", function()
+    print("[NNVN] Kill All")
+    Library:SetNotification({
+        Title = "NNVN Hub",
+        Description = "Info",
+        Content = "Đã gọi Kill All (demo)",
+        Delay = 2,
+    })
+end)
+
+F:Toggle(MainSection, "Auto Farm", "Bật/tắt auto farm (lưu config)", "Save", function(v)
+    SaveConfig["Auto Farm"] = v
+    print("[NNVN] Auto Farm =", v)
+end)
+
+F:Toggle(MainSection, "Speed Boost", "Tăng tốc độ", "Save", function(v)
+    SaveConfig["Speed Boost"] = v
+    print("[NNVN] Speed Boost =", v)
+end)
+
+MainSection:AddLine()
+MainSection:AddSeperator({ Title = "Slider & Input" })
+
+MainSection:AddSlider({
     Title = "WalkSpeed",
+    Content = "Chỉnh tốc độ đi",
+    Increment = 1,
     Min = 16,
     Max = 200,
-    Default = 16,
+    Default = SaveConfig["WalkSpeed"] or 50,
     Callback = function(v)
-        local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+        SaveConfig["WalkSpeed"] = v
+        local char = game.Players.LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = v end
-    end
+    end,
 })
 
-PlayerSec:AddSlider({
-    Title = "Jump Power",
-    Min = 50,
-    Max = 300,
-    Default = 50,
-    Callback = function(v)
-        local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then hum.JumpPower = v end
-    end
+F:Textbox(MainSection, "Player Name", "Nhập tên người chơi", "Save", function(text)
+    SaveConfig["Player Name"] = text
+    print("[NNVN] Player Name =", text)
+end)
+
+MainSection:AddInput({
+    Title = "Webhook URL",
+    Content = "Dán webhook (demo)",
+    Default = "",
+    Callback = function(text)
+        print("[NNVN] Webhook =", text)
+    end,
 })
 
-PlayerSec:AddToggle({
-    Title = "Infinite Jump",
-    Default = false,
-    Callback = function(v) print("InfJump:", v) end
+-- ========= TAB 2: CHIẾN ĐẤU =========
+local CombatTab = Window:CreateTab({
+    Name = "Chiến đấu",
+    Icon = "rbxassetid://7733920644",
 })
 
-local CombatSec = Main:CreateSection("Combat")
+local CombatSec = CombatTab:AddSection("Vũ khí & Skill", true)
 
-CombatSec:AddToggle({
-    Title = "Aimbot",
-    Description = "Tự động nhắm",
-    Default = false,
-    Callback = function(v) print("Aimbot:", v) end
-})
+F:Dropdown(CombatSec, "Weapon", "Chọn vũ khí", false, {
+    "Sword", "Gun", "Bow", "Magic Staff", "Dagger"
+}, "Save", function(val)
+    SaveConfig["Weapon"] = val
+    print("[NNVN] Weapon =", table.concat(val, ", "))
+end)
 
 CombatSec:AddDropdown({
-    Title = "Aim Part",
-    Options = {"Head", "HumanoidRootPart", "UpperTorso", "LowerTorso"},
-    Default = "Head",
-    Callback = function(v) print("Part:", v) end
-})
-
-CombatSec:AddButton({
-    Title = "Kill All (Demo)",
-    Callback = function()
-        Library:Notify({ Title = "Demo", Content = "This is only a demo button!", Duration = 3 })
-    end
-})
-
--- ==================== VISUALS ====================
-local Visual = Window:CreateTab({ Title = "Visuals" })
-
-local EspSec = Visual:CreateSection("ESP")
-
-EspSec:AddToggle({ Title = "Player ESP", Default = false, Callback = function(v) print(v) end })
-EspSec:AddToggle({ Title = "Box ESP", Default = false, Callback = function(v) print(v) end })
-EspSec:AddToggle({ Title = "Name ESP", Default = true, Callback = function(v) print(v) end })
-EspSec:AddToggle({ Title = "Distance ESP", Default = true, Callback = function(v) print(v) end })
-
-local WorldSec = Visual:CreateSection("World")
-WorldSec:AddToggle({ Title = "Fullbright", Default = false, Callback = function(v) print(v) end })
-WorldSec:AddToggle({ Title = "No Fog", Default = false, Callback = function(v) print(v) end })
-
--- ==================== DROPDOWN DEMO ====================
-local DropTab = Window:CreateTab({ Title = "Dropdown" })
-local DropSec = DropTab:CreateSection("Search Dropdown")
-
-DropSec:AddParagraph("Hướng dẫn", "Click dropdown → gõ để search rất nhanh. Hỗ trợ Multi Select.")
-
-DropSec:AddDropdown({
-    Title = "Pet",
-    Options = {"Dragon", "Phoenix", "Unicorn", "Wolf", "Tiger", "Lion", "Eagle", "Shark", "Cat", "Dog", "Fox", "Panda"},
-    Default = "Dragon",
-    Callback = function(v)
-        Library:Notify({ Title = "Selected", Content = tostring(v), Duration = 2 })
-    end
-})
-
-DropSec:AddDropdown({
-    Title = "Weapons (Multi)",
-    Options = {"Sword", "Gun", "Bow", "Staff", "Axe", "Spear"},
-    Default = {"Sword"},
+    Title = "Skills (Multi)",
+    Content = "Chọn nhiều skill + search",
     Multi = true,
-    Callback = function(v) print("Weapons:", v) end
+    Options = {"Slash", "Fireball", "Heal", "Dash", "Shield"},
+    Default = {"Slash"},
+    Callback = function(val)
+        print("[NNVN] Skills =", table.concat(val, ", "))
+    end,
 })
 
--- ==================== UTILS ====================
-local Utils = Window:CreateTab({ Title = "Utils" })
-local InputSec = Utils:CreateSection("Input")
-
-InputSec:AddTextBox({
-    Title = "Player Name",
-    Placeholder = "Enter username...",
-    Callback = function(v) print("Name:", v) end
+CombatSec:AddToggle({
+    Title = "Auto Attack",
+    Content = "Tự động đánh quái gần nhất",
+    Default = false,
+    Callback = function(v) print("[NNVN] Auto Attack =", v) end,
 })
 
-InputSec:AddTextBox({
-    Title = "Webhook",
-    Placeholder = "https://discord.com/api/webhooks/...",
-    Callback = function(v) print("Webhook:", v) end
+CombatSec:AddSlider({
+    Title = "Attack Range",
+    Content = "Phạm vi tấn công",
+    Increment = 1,
+    Min = 5,
+    Max = 100,
+    Default = 25,
+    Callback = function(v) print("[NNVN] Range =", v) end,
 })
 
-local ActionSec = Utils:CreateSection("Actions")
+-- ========= TAB 3: CÀI ĐẶT =========
+local SettingsTab = Window:CreateTab({
+    Name = "Cài đặt",
+    Icon = "rbxassetid://7734053495",
+})
 
-ActionSec:AddButton({
-    Title = "Copy JobId",
+local LangSec = SettingsTab:AddSection("Ngôn ngữ & Giao diện", true)
+
+LangSec:AddParagraph({
+    Title = "BottomBar là gì?",
+    Content = "Thanh dài dưới đáy cửa sổ = BottomBar (thanh kéo). Kéo nó để di chuyển UI. Góc phải dưới = ResizeHandle (thu phóng).",
+})
+
+LangSec:AddButton({
+    Title = "Tiếng Việt",
+    Content = "Đổi sang tiếng Việt",
     Callback = function()
-        if setclipboard then setclipboard(game.JobId) end
-        Library:Notify({ Title = "Copied", Content = "JobId copied!", Duration = 2 })
-    end
+        Library:SetLanguage("vi")
+        Library:SetNotification({
+            Title = "NNVN Hub",
+            Description = "Ngôn ngữ",
+            Content = "Đã chuyển sang Tiếng Việt",
+            Delay = 2,
+        })
+    end,
 })
 
-ActionSec:AddButton({
-    Title = "Rejoin",
+LangSec:AddButton({
+    Title = "English",
+    Content = "Switch to English",
     Callback = function()
-        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, game.Players.LocalPlayer)
-    end
+        Library:SetLanguage("en")
+        Library:SetNotification({
+            Title = "NNVN Hub",
+            Description = "Language",
+            Content = "Switched to English",
+            Delay = 2,
+        })
+    end,
 })
 
-ActionSec:AddButton({
-    Title = "Show Notify",
+LangSec:AddSeperator({ Title = "Khác" })
+
+LangSec:AddButton({
+    Title = "Print SaveConfig",
+    Content = "In config ra console",
     Callback = function()
-        Library:Notify({ Title = "NNVN Hub", Content = "Notification demo!", Duration = 3 })
-    end
+        print("===== SaveConfig =====")
+        for k, v in pairs(SaveConfig) do
+            if type(v) == "table" then
+                print(k, "=", table.concat(v, ", "))
+            else
+                print(k, "=", v)
+            end
+        end
+    end,
 })
 
--- ==================== SETTINGS ====================
-local Settings = Window:CreateTab({ Title = "Settings" })
-
-local ThemeSec = Settings:CreateSection("Theme & Language")
-
-ThemeSec:AddDropdown({
-    Title = "Theme",
-    Options = {"Default", "Dark", "Red", "Green", "Purple", "Cyan", "Orange"},
-    Default = "Default",
-    Callback = function(v)
-        Window:SetTheme(v)
-    end
-})
-
-ThemeSec:AddDropdown({
-    Title = "Language",
-    Options = {"en", "vi"},
-    Default = "en",
-    Callback = function(v)
-        Window:SetLanguage(v)
-    end
-})
-
-ThemeSec:AddParagraph("Info", "Default theme = Gray / White\nPC size lớn hơn, Mobile nhỏ hơn một chút.\nNút ⛶ = Fullscreen")
-
-local DiscordSec = Settings:CreateSection("Discord")
-
-DiscordSec:AddDiscordInvite({
-    Title = "NNVN Community",
-    Description = "Join our Discord!",
-    Invite = "discord.gg/example",
-})
-
-local DangerSec = Settings:CreateSection("Danger Zone")
-
-DangerSec:AddButton({
-    Title = "Destroy UI",
+LangSec:AddButton({
+    Title = "Notify x3",
+    Content = "Test stack notification",
     Callback = function()
-        Window:Destroy()
-    end
+        for i = 1, 3 do
+            task.spawn(function()
+                Library:SetNotification({
+                    Title = "NNVN Hub",
+                    Description = "Test #" .. i,
+                    Content = "Thông báo số " .. i,
+                    Delay = 3 + i,
+                })
+            end)
+            task.wait(0.15)
+        end
+    end,
+})
+
+-- ========= TAB 4: EXTRA =========
+local ExtraTab = Window:CreateTab({
+    Name = "Extra",
+    Icon = "rbxassetid://7733715400",
+})
+
+local ExtraSec = ExtraTab:AddSection("Tất cả component", true)
+
+ExtraSec:AddParagraph({
+    Title = "Paragraph",
+    Content = "Ghi chú / hướng dẫn dài. Text tự wrap.",
+})
+
+ExtraSec:AddSeperator({ Title = "Separator Title" })
+ExtraSec:AddLine()
+
+ExtraSec:AddButton({
+    Title = "Button",
+    Content = "Nút thường",
+    Callback = function() print("Button") end,
+})
+
+ExtraSec:AddToggle({
+    Title = "Toggle",
+    Content = "Công tắc",
+    Default = true,
+    Callback = function(v) print("Toggle", v) end,
+})
+
+ExtraSec:AddSlider({
+    Title = "Slider",
+    Content = "Kéo hoặc nhập số",
+    Increment = 5,
+    Min = 0,
+    Max = 100,
+    Default = 50,
+    Callback = function(v) print("Slider", v) end,
+})
+
+ExtraSec:AddInput({
+    Title = "Input",
+    Content = "Ô nhập text",
+    Default = "Hello NNVN",
+    Callback = function(t) print("Input", t) end,
+})
+
+ExtraSec:AddDropdown({
+    Title = "Dropdown Single",
+    Content = "Chọn 1",
+    Multi = false,
+    Options = {"A", "B", "C", "D"},
+    Default = {"A"},
+    Callback = function(v) print("DD", table.concat(v, ",")) end,
+})
+
+ExtraSec:AddDropdown({
+    Title = "Dropdown Multi",
+    Content = "Chọn nhiều + search",
+    Multi = true,
+    Options = {"Red", "Green", "Blue", "Yellow", "Purple", "Orange"},
+    Default = {"Red", "Blue"},
+    Callback = function(v) print("Multi", table.concat(v, ",")) end,
 })
 
 print("[NNVN Hub] Example loaded!")
+Library:SetNotification({
+    Title = "NNVN Hub",
+    Description = "Ready",
+    Content = "UI sẵn sàng. Kéo BottomBar / resize góc để thử!",
+    Delay = 4,
+})
