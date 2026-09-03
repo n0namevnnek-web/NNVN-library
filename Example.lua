@@ -1,6 +1,6 @@
 --[[
-    NNVN Lib v1.4 — Example
-    ProgressBar · Colorpicker · Tooltip · Tag · Acrylic
+    NNVN Lib v1.4.1 — Example
+    Redz-style Darker · Acrylic independent of BgImage · WindUI-like Tags
 ]]
 
 local Library = loadstring(game:HttpGet(
@@ -8,14 +8,15 @@ local Library = loadstring(game:HttpGet(
 ))()
 
 Library.Default.Language = "en"
+-- Theme default is Darker (redz-like)
 
 local Window = Library:MakeWindow({
     Title = "NNVN Hub",
-    SubTitle = "v1.4",
+    SubTitle = "v1.4.1",
     ScriptFolder = "NNVNHub",
     BackgroundImage = "10709752996",
-    BackgroundImageTransparency = 0.8,
-    Acrylic = true, -- frosted / blur-like panel
+    BackgroundImageTransparency = 0.6,
+    Acrylic = false, -- turn on/off anytime; bg image stays
 })
 
 Window:NewMinimizer(Enum.KeyCode.RightControl)
@@ -26,21 +27,20 @@ Window:CreateOpenButton({
     Icon = "10734896206"
 })
 
--- Tags on topbar
-Window:AddTag({ Title = "BETA", Color = Color3.fromRGB(99, 102, 241) })
-Window:AddTag({ Title = "v1.4" })
+-- WindUI-style tags
+Window:AddTag({ Title = "BETA" })
+Window:AddTag({ Title = "v1.4", Color = Color3.fromRGB(88, 101, 242) })
 
 local Main = Window:MakeTab({ Title = "Main", Icon = "home" })
 Main:AddSection("Combat")
 
-local farmToggle = Main:AddToggle({
+Main:AddToggle({
     Title = "Auto Farm",
     Description = "Automatically farm enemies",
     Default = false,
     Flag = "AutoFarm",
-    Callback = function(v) print("Auto Farm:", v) end
-})
-farmToggle:SetTooltip("Enable auto farm loop")
+    Callback = function(v) print(v) end
+}):SetTooltip("Enable auto farm")
 
 Main:AddSlider({
     Title = "Distance",
@@ -49,36 +49,24 @@ Main:AddSlider({
     Callback = function(v) print(v) end
 })
 
--- ProgressBar
 local bar = Main:AddProgressBar({
-    Title = "Load Progress",
-    Description = "Example progress",
-    Min = 0, Max = 100, Default = 35
+    Title = "Progress",
+    Min = 0, Max = 100, Default = 40
 })
-task.spawn(function()
-    for i = 35, 100 do
-        bar:SetValue(i)
-        task.wait(0.05)
-    end
-end)
 
--- Colorpicker
 Main:AddColorpicker({
-    Title = "Accent Color",
-    Description = "Pick a color (R/G/B)",
-    Default = Color3.fromRGB(99, 102, 241),
-    Flag = "AccentColor",
-    Callback = function(c)
-        print("Color:", c)
-    end
+    Title = "Accent",
+    Default = Color3.fromRGB(88, 101, 242),
+    Flag = "Accent",
+    Callback = function(c) print(c) end
 })
 
 Main:AddButton({
     Title = "Notify",
     Callback = function()
-        Window:Notify({ Title = "NNVN", Content = "Hello v1.4!", Duration = 3 })
+        Window:Notify({ Title = "NNVN", Content = "Redz-style Darker UI", Duration = 3 })
     end
-}):SetTooltip("Show a notification")
+})
 
 local Settings = Window:MakeTab({ Title = "Settings", Icon = "settings" })
 Settings:AddSection("Appearance")
@@ -86,24 +74,30 @@ Settings:AddSection("Appearance")
 Settings:AddDropdown({
     Title = "Theme",
     Options = Library:GetThemes(),
-    Default = "Black",
+    Default = "Darker",
     Flag = "Theme",
     Callback = function(t) Library:SetTheme(t) end
 })
 
 Settings:AddToggle({
     Title = "Acrylic",
-    Description = "Frosted glass style",
-    Default = true,
+    Description = "Frosted overlay (bg image stays)",
+    Default = false,
     Callback = function(v) Window:SetAcrylic(v) end
 })
 
 Settings:AddTextBox({
     Title = "Background Image ID",
-    Description = "Number only",
+    Description = "Number only — works with or without Acrylic",
     Placeholder = "10709752996",
     Flag = "BgId",
     Callback = function(t) Window:SetBackgroundImage(t) end
+})
+
+Settings:AddSlider({
+    Title = "Bg Transparency",
+    Min = 0, Max = 1, Increment = 0.05, Default = 0.6,
+    Callback = function(v) Window:SetBackgroundImageTransparency(v) end
 })
 
 Settings:AddSlider({
@@ -113,4 +107,4 @@ Settings:AddSlider({
     Callback = function(v) Library:SetUIScale(v) end
 })
 
-print("[NNVN] v1.4 loaded")
+print("[NNVN] v1.4.1 loaded | Theme:", Library:GetCurrentTheme().Name)

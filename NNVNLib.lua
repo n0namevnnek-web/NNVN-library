@@ -130,17 +130,19 @@ local Themes = {
         Color3.fromRGB(99, 102, 241),
         Color3.fromRGB(245, 245, 250)
     ),
+    -- Redz-style Darker (default)
     Darker = MakeTheme("Darker",
-        Color3.fromRGB(99, 102, 241),
-        Color3.fromRGB(240, 240, 245),
+        Color3.fromRGB(88, 101, 242),
+        Color3.fromRGB(232, 233, 235),
         {
-            bg1 = Color3.fromRGB(18, 18, 20),
-            bg2 = Color3.fromRGB(24, 24, 28),
-            stroke = Color3.fromRGB(40, 40, 48),
-            btnDefault = Color3.fromRGB(26, 26, 30),
-            btnHold = Color3.fromRGB(36, 36, 42),
-            dialog = Color3.fromRGB(22, 22, 26),
-            transparency = 0.02
+            bg1 = Color3.fromRGB(25, 25, 25),
+            bg2 = Color3.fromRGB(32, 32, 32),
+            stroke = Color3.fromRGB(45, 45, 45),
+            btnDefault = Color3.fromRGB(28, 28, 30),
+            btnHold = Color3.fromRGB(34, 34, 34),
+            dialog = Color3.fromRGB(28, 28, 28),
+            onPrimary = Color3.fromRGB(61, 67, 135),
+            transparency = 0.03
         }
     ),
 
@@ -342,12 +344,12 @@ local Library = {
         GitHubOwner = "NNVN"
     },
     Default = {
-        Theme = "Black",
+        Theme = "Darker",
         -- Desktop compact / Mobile even smaller
-        UISize = IS_MOBILE and UDim2.fromOffset(340, 240) or UDim2.fromOffset(420, 280),
-        TabSize = IS_MOBILE and 100 or 120,
+        UISize = IS_MOBILE and UDim2.fromOffset(360, 260) or UDim2.fromOffset(480, 320),
+        TabSize = IS_MOBILE and 110 or 140,
         BackgroundImage = nil,
-        BackgroundImageTransparency = 0.72,
+        BackgroundImageTransparency = 0.55,
         Language = "en"
     },
     Themes = Themes,
@@ -3265,18 +3267,21 @@ function WindowAPI:StartWindow(config)
         subTitle.Text = text
     end
 
-    -- Background Image support
+    -- Background Image (independent of Acrylic)
+    -- Layer order: Window solid bg (Z0) → Acrylic (Z1) → BgImage (Z2) → Content (higher)
     local bgImage = New("ImageLabel", mainFrame, {
         Name = "BackgroundImage",
         Size = UDim2.fromScale(1, 1),
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
-        ImageTransparency = Library.Default.BackgroundImageTransparency or 0.65,
+        ImageTransparency = Library.Default.BackgroundImageTransparency or 0.55,
         ScaleType = Enum.ScaleType.Crop,
-        ZIndex = 0,
+        ZIndex = 2,
         Visible = false
     })
+    -- clip to window corners
+    local bgCorner = New("UICorner", bgImage, { CornerRadius = UDim.new(0, 10) })
 
     function WindowAPI:SetBackgroundImage(assetId)
         local normalized = NormalizeAssetId(assetId)
@@ -3290,7 +3295,6 @@ function WindowAPI:StartWindow(config)
         end
         bgImage.Image = normalized
         bgImage.Visible = true
-        -- persist pure ID for config
         local pureId = tostring(assetId):gsub("rbxassetid://", ""):gsub("%s+", "")
         if Library.WindowSettings then
             Library.WindowSettings.BackgroundImage = pureId
@@ -3308,7 +3312,6 @@ function WindowAPI:StartWindow(config)
         Library.Default.BackgroundImageTransparency = v
     end
 
-    -- apply default if set
     if Library.Default.BackgroundImage then
         WindowAPI:SetBackgroundImage(Library.Default.BackgroundImage)
     end
@@ -4103,58 +4106,50 @@ function Library:MakeWindow(config)
     end
 
     local acrylicOn = windowConfig.Acrylic == true
-    local windowElements = {
-        Corner = UDim.new(0, 12),
-        Stroke = {
-            Thickness = 1,
-            ThemeTag = { Color = "Colors.Stroke" }
-        }
-    }
-    if not acrylicOn then
-        windowElements.Gradient = {
-            Rotation = 45,
-            ThemeTag = { Color = "Colors.Background" }
-        }
-    end
+    -- Always keep solid redz-style gradient base (Acrylic is an extra layer, does not replace bg)
     local window = New("Frame", "Window", ScreenGui, {
         Position = UDim2.new(0.5, -size.X.Offset / 2, 0.5, -size.Y.Offset / 2),
         Active = true,
         Size = size,
-        BackgroundTransparency = acrylicOn and 0.35 or nil,
-        ThemeTag = acrylicOn and {
-            BackgroundColor3 = "Colors.Buttons.Default"
-        } or {
+        ThemeTag = {
             BackgroundTransparency = "BackgroundTransparency"
         },
-        Elements = windowElements
+        Elements = {
+            Corner = UDim.new(0, 10),
+            Stroke = {
+                Thickness = 1,
+                ThemeTag = { Color = "Colors.Stroke" }
+            },
+            Gradient = {
+                Rotation = 45,
+                ThemeTag = { Color = "Colors.Background" }
+            }
+        }
     })
 
-    -- Acrylic / frosted overlay (simple blur-like look)
-    local acrylicLayer = nil
-    if acrylicOn then
-        acrylicLayer = New("Frame", "Acrylic", window, {
-            Size = UDim2.fromScale(1, 1),
-            BackgroundTransparency = 0.55,
-            ZIndex = 0,
-            ThemeTag = {
-                BackgroundColor3 = "Colors.Buttons.Default"
-            },
-            Elements = {
-                Corner = UDim.new(0, 12)
-            }
-        })
-        -- Soft primary tint
-        New("Frame", acrylicLayer, {
-            Size = UDim2.fromScale(1, 1),
-            BackgroundTransparency = 0.85,
-            ThemeTag = {
-                BackgroundColor3 = "Colors.Primary"
-            },
-            Elements = {
-                Corner = UDim.new(0, 12)
-            }
-        })
-    end
+    -- Acrylic layer: frosted tint OVER the solid bg, UNDER content & bg image
+    local acrylicLayer = New("Frame", "Acrylic", window, {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = acrylicOn and 0.45 or 1,
+        Visible = acrylicOn,
+        ZIndex = 1,
+        ThemeTag = {
+            BackgroundColor3 = "Colors.Buttons.Default"
+        },
+        Elements = {
+            Corner = UDim.new(0, 10)
+        }
+    })
+    local acrylicTint = New("Frame", acrylicLayer, {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = acrylicOn and 0.82 or 1,
+        ThemeTag = {
+            BackgroundColor3 = "Colors.Primary"
+        },
+        Elements = {
+            Corner = UDim.new(0, 10)
+        }
+    })
 
     Connect(window.Destroying, function() self:Destroy() end)
     Connect(ScreenGui:GetAttributeChangedSignal("UID"), function()
@@ -4165,10 +4160,11 @@ function Library:MakeWindow(config)
     Creator.Draggable(window, scale, 0.5)
 
     local components = New("Folder", "Components", window)
+    components.ZIndex = 5
     local dropdowns = New("Folder", "Dropdowns", ScreenGui)
 
     local topBar = New("Frame", "TopBar", components, {
-        Size = UDim2.new(1, 0, 0, 24),
+        Size = UDim2.new(1, 0, 0, 28),
         BackgroundTransparency = 1
     })
 
@@ -4376,54 +4372,77 @@ function Library:MakeWindow(config)
 
     function api:SetAcrylic(enabled)
         self.AcrylicEnabled = enabled == true
-        if acrylicLayer then
-            acrylicLayer.Visible = self.AcrylicEnabled
-        end
+        acrylicLayer.Visible = self.AcrylicEnabled
+        -- Only toggle acrylic overlay — never touch BackgroundImage or solid window bg
         if self.AcrylicEnabled then
-            window.BackgroundTransparency = 0.35
+            acrylicLayer.BackgroundTransparency = 0.45
+            acrylicTint.BackgroundTransparency = 0.82
         else
-            window.BackgroundTransparency = Library.CurrentTheme and Library.CurrentTheme.BackgroundTransparency or 0.02
+            acrylicLayer.BackgroundTransparency = 1
+            acrylicTint.BackgroundTransparency = 1
         end
+        -- window solid bg stays from theme (BackgroundTransparency)
+        local themeT = Library.CurrentTheme and Library.CurrentTheme.BackgroundTransparency or 0.03
+        window.BackgroundTransparency = themeT
     end
 
-    -- Tag on topbar (pill badge)
+    -- WindUI-style Tag (pill on topbar center)
     function api:AddTag(config)
         config = type(config) == "table" and config or { Title = tostring(config) }
         local text = config.Title or config.Name or config.Text or "Tag"
         local color = config.Color or config.BackgroundColor3
+        local icon = config.Icon
         if typeof(color) ~= "Color3" then
-            color = nil
+            color = DeepGet(Library.CurrentTheme, "Colors.Primary")
         end
 
         local tag = New("Frame", tagsHolder, {
-            Size = UDim2.fromOffset(0, 16),
+            Size = UDim2.fromOffset(0, 18),
             AutomaticSize = Enum.AutomaticSize.X,
-            BackgroundTransparency = 0.15,
-            ThemeTag = color and nil or {
-                BackgroundColor3 = "Colors.Primary"
-            },
             BackgroundColor3 = color,
+            BackgroundTransparency = 0.25,
             Elements = {
-                Corner = UDim.new(0, 5),
+                Corner = UDim.new(0, 6),
                 Padding = {
-                    PaddingLeft = UDim.new(0, 6),
-                    PaddingRight = UDim.new(0, 6)
+                    PaddingLeft = UDim.new(0, 7),
+                    PaddingRight = UDim.new(0, 7),
+                    PaddingTop = UDim.new(0, 2),
+                    PaddingBottom = UDim.new(0, 2)
+                },
+                ListLayout = {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    VerticalAlignment = Enum.VerticalAlignment.Center,
+                    Padding = UDim.new(0, 4)
                 }
             }
         })
+
+        if icon then
+            New("ImageLabel", tag, {
+                Size = UDim2.fromOffset(12, 12),
+                BackgroundTransparency = 1,
+                Image = NormalizeAssetId(icon) or "",
+                ImageColor3 = Color3.new(1, 1, 1)
+            })
+        end
 
         local label = New("TextLabel", tag, {
             AutomaticSize = Enum.AutomaticSize.XY,
             BackgroundTransparency = 1,
             Text = text,
-            TextSize = 9,
-            ThemeTag = {
-                TextColor3 = "Colors.Text.Default",
-                Font = "Font.Bold"
-            }
+            TextSize = 10,
+            TextColor3 = Color3.new(1, 1, 1),
+            Font = Enum.Font.GothamBold
         })
 
-        return setmetatable({
+        -- soft border
+        New("UIStroke", tag, {
+            Thickness = 1,
+            Color = color,
+            Transparency = 0.5
+        })
+
+        return {
             Frame = tag,
             Label = label,
             Kind = "Tag",
@@ -4438,7 +4457,7 @@ function Library:MakeWindow(config)
             Destroy = function()
                 tag:Destroy()
             end
-        }, {})
+        }
     end
 
     api:StartWindow({
