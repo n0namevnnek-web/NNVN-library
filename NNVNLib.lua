@@ -33,7 +33,7 @@ local LUCIDE_GLYPHS = {
     shield="⬟", ["shield-check"]="✓", sparkles="✦", users="♟", palette="◉", sword="⚔",
     sun="☀", list="☷", ["refresh-cw"]="↻", ["battery-charging"]="▰",
     ["cloud-off"]="☁", eye="◉", hash="#", crosshair="⊕", shuffle="↝",
-    repeat="↻", play="▶", ["play-circle"]="⏵", check="✓",
+    ["repeat"]="↻", play="▶", ["play-circle"]="⏵", check="✓",
     ["check-circle"]="●", tag="◇", ["file-text"]="▤", target="◎",
     move="↔", activity="∿", search="⌕", ["log-in"]="↪", ["rotate-ccw"]="↶", ["message-circle"]="●",
     crown="♛", user="●", code="<>", terminal=">_", link="↗", x="×",
