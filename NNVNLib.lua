@@ -1,9 +1,9 @@
 --[[
     NNVN Hub UI Library (Gray/White Edition)
     ==========================================
-    • Mobile scale = 0.5 (nhỏ hơn 2 lần so với PC)
-    • Tự động lưu cài đặt (SaveManager)
-    • Đổi ngôn ngữ tức thì (en/vi) – dropdown không bị trống
+    • Hỗ trợ scale cho điện thoại (0.65)
+    • Đổi ngôn ngữ mượt mà (cập nhật ngay)
+    • SaveManager tự động lưu mọi thay đổi
     • Hỗ trợ background qua rbxassetid
 ]]
 
@@ -31,8 +31,7 @@ local TEXT_LO     = Color3.fromRGB(140, 140, 140)
 local Custom = {}
 Custom.ColorRGB = ACCENT
 Custom.Language = "en"
-Custom.Scale    = 1
-Custom._dropdowns = {}
+Custom.Scale    = 1  -- sẽ được set dựa trên mobile
 
 Custom.Translations = {
     en = {
@@ -59,23 +58,43 @@ end
 function Custom:SetLanguage(lang)
     if lang == "vi" or lang == "en" then
         Custom.Language = lang
+        -- Cập nhật tất cả các label trong GUI hiện tại
         Custom:UpdateLanguage()
     end
 end
 
+-- Lưu tham chiếu các label cần cập nhật
 Custom._languageLabels = {}
 
-function Custom:RegisterLanguageLabel(label, key)
-    table.insert(Custom._languageLabels, {label = label, key = key})
-    label.Text = Custom:T(key)
+function Custom:RegisterLanguageLabel(label, key, prop)
+    -- prop = "Text" (default) hoặc "PlaceholderText" cho TextBox
+    prop = prop or "Text"
+    table.insert(Custom._languageLabels, {label = label, key = key, prop = prop})
+    if prop == "PlaceholderText" then
+        label.PlaceholderText = Custom:T(key)
+    else
+        label.Text = Custom:T(key)
+    end
 end
 
 function Custom:UpdateLanguage()
     for _, entry in ipairs(Custom._languageLabels) do
-        entry.label.Text = Custom:T(entry.key)
-    end
-    for _, fd in ipairs(Custom._dropdowns) do
-        fd:Set(fd.Value)
+        local newText = Custom:T(entry.key)
+        if entry.prop == "PlaceholderText" then
+            entry.label.PlaceholderText = newText
+        else
+            -- Chỉ cập nhật Text nếu đang hiển thị 1 trong các bản dịch cũ của key (tránh ghi đè giá trị đã chọn của dropdown)
+            local isPlaceholder = false
+            for _, langTable in pairs(Custom.Translations) do
+                if entry.label.Text == (langTable[entry.key] or entry.key) then
+                    isPlaceholder = true
+                    break
+                end
+            end
+            if isPlaceholder then
+                entry.label.Text = newText
+            end
+        end
     end
 end
 
@@ -132,13 +151,12 @@ local function OpenClose()
         RunService:IsStudio() and Player.PlayerGui
         or (gethui and gethui() or cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")))
 
-    -- ===== SỬA NÚT: to hơn, dịch xuống, dễ ấn hơn =====
     local Btn = Custom:Create("ImageButton", {
         BackgroundColor3     = Color3.fromRGB(30,30,30),
         BackgroundTransparency = 0.3,
         BorderSizePixel      = 0,
-        Position             = UDim2.new(0.05, 0, 0.09, 0),  -- dịch xuống
-        Size                 = UDim2.new(0, 64, 0, 50),      -- to hơn
+        Position             = UDim2.new(0.05, 0, 0.07, 0),
+        Size                 = UDim2.new(0, 52, 0, 42),
         Image                = "rbxassetid://138952058031836",
         ImageColor3          = ACCENT,
         Visible              = false,
@@ -426,6 +444,7 @@ local function SaveSettings()
 end
 LoadSettings()
 
+-- Hàm hỗ trợ lưu/load cho từng control
 function NNVN_Hub:SaveValue(key, value)
     Settings[key] = value
     SaveSettings()
@@ -448,33 +467,24 @@ function NNVN_Hub:CreateWindow(Config)
     local Language = Config.Language or Config[5] or "en"
     Custom:SetLanguage(Language)
 
-    -- Xác định mobile và scale
     local IsMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
     if not IsMobile then
         local cam = workspace.CurrentCamera
         if cam and cam.ViewportSize.X < 700 then IsMobile = true end
     end
 
-    local sc
-    local DefaultSize
-    local WindowMinSize, WindowMaxSize
+    -- Scale cho mobile
     if IsMobile then
-        sc = 0.5   -- nhỏ hơn 2 lần so với PC
-        DefaultSize = UDim2.fromOffset(350, 210)  -- kích thước khung
-        WindowMinSize = Config.MinSize or Vector2.new(300, 180)
-        WindowMaxSize = Config.MaxSize or Vector2.new(500, 350)
+        Custom.Scale = 0.65
     else
-        sc = 1
-        DefaultSize = UDim2.fromOffset(700, 420)
-        WindowMinSize = Config.MinSize or Vector2.new(480, 300)
-        WindowMaxSize = Config.MaxSize or Vector2.new(1100, 720)
+        Custom.Scale = 1
     end
-    Custom.Scale = sc
+    local sc = Custom.Scale
 
-    -- Nếu người dùng có truyền SizeUi, dùng nó, ngược lại dùng DefaultSize
-    local SizeUi = Config[4] or Config.SizeUi or DefaultSize
-    -- Áp dụng scale cho TabWidth nếu muốn
-    local TabWidthScaled = TabWidth * sc
+    local DefaultSize    = IsMobile and UDim2.fromOffset(300*sc, 230*sc) or UDim2.fromOffset(700, 420)
+    local SizeUi         = Config[4] or Config.SizeUi or DefaultSize
+    local WindowMinSize  = Config.MinSize or (IsMobile and Vector2.new(260*sc,200*sc) or Vector2.new(480,300))
+    local WindowMaxSize  = Config.MaxSize or (IsMobile and Vector2.new(480*sc,380*sc) or Vector2.new(1100,720))
 
     local NNGui = Custom:Create("ScreenGui", {ZIndexBehavior = Enum.ZIndexBehavior.Sibling},
         RunService:IsStudio() and Player.PlayerGui
@@ -502,6 +512,7 @@ function NNVN_Hub:CreateWindow(Config)
         Name               = "Shadow"
     }, ShadowHolder)
 
+    -- Main frame (có thể đặt background image)
     local Main = Custom:Create("Frame", {
         AnchorPoint        = Vector2.new(0.5,0.5),
         BackgroundColor3   = BG_MAIN,
@@ -515,7 +526,7 @@ function NNVN_Hub:CreateWindow(Config)
     Custom:Create("UICorner", {}, Main)
     Custom:Create("UIStroke", {Color = Color3.fromRGB(55,55,55), Thickness = 1.4}, Main)
 
-    -- Background image
+    -- Background image (nếu có)
     local bgId = Config.BackgroundAssetId or Config.Background
     if bgId and tonumber(bgId) then
         local bg = Custom:Create("ImageLabel", {
@@ -528,6 +539,7 @@ function NNVN_Hub:CreateWindow(Config)
             Name = "BackgroundImage",
             ZIndex = 0,
         }, Main)
+        -- Đảm bảo các thành phần khác nằm trên
         for _, child in ipairs(Main:GetChildren()) do
             if child ~= bg then child.ZIndex = child.ZIndex + 1 end
         end
@@ -581,7 +593,7 @@ function NNVN_Hub:CreateWindow(Config)
             BackgroundColor3 = BgColor,
             BackgroundTransparency = BgTrans,
             BorderSizePixel = 0,
-            Position    = UDim2.new(1,PosX*sc,0.5,0),
+            Position    = UDim2.new(1, PosX, 0.5, 0),  -- PosX đã được scale sẵn từ ngoài
             Size        = UDim2.new(0,28*sc,0,22*sc),
             Name        = Name,
             AutoButtonColor = false,
@@ -606,9 +618,12 @@ function NNVN_Hub:CreateWindow(Config)
         return Btn, Img
     end
 
-    local CloseBtn, _  = MakeWinBtn("Close", Lucide.X,        -8*sc,  Color3.fromRGB(80,80,80), 0.4)
-    local MaxBtn, MaxIco = MakeWinBtn("Max", Lucide.Maximize, -40*sc, Color3.fromRGB(55,55,55), 0.5)
-    local MinBtn, _    = MakeWinBtn("Min",  Lucide.Minus,    -72*sc, Color3.fromRGB(55,55,55), 0.5)
+    -- Spacing lớn hơn trên mobile (button ~28*sc, gap ~10*sc)
+    local btnW = 28 * sc
+    local gap  = math.max(8, 10 * sc)  -- tối thiểu 8px
+    local CloseBtn, _  = MakeWinBtn("Close", Lucide.X,        -(4 + btnW),                 Color3.fromRGB(80,80,80), 0.4)
+    local MaxBtn, MaxIco = MakeWinBtn("Max", Lucide.Maximize, -(4 + btnW + gap + btnW),     Color3.fromRGB(55,55,55), 0.5)
+    local MinBtn, _    = MakeWinBtn("Min",  Lucide.Minus,    -(4 + btnW + gap + btnW + gap + btnW), Color3.fromRGB(55,55,55), 0.5)
 
     Custom:Create("Frame", {
         AnchorPoint = Vector2.new(0.5,0),
@@ -1337,6 +1352,7 @@ function NNVN_Hub:CreateWindow(Config)
                 local Callback = Config[4] or Config.Callback or function() end
                 local FT       = {Value = Default}
 
+                -- Tạo key lưu: Tên của toggle
                 local saveKey = "Toggle_" .. Title
                 Default = NNVN_Hub:LoadValue(saveKey, Default)
                 FT.Value = Default
@@ -1552,7 +1568,8 @@ function NNVN_Hub:CreateWindow(Config)
                     AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, BorderSizePixel=0,
                     Position=UDim2.new(0,6*sc,0.5,0), Size=UDim2.new(1,-10*sc,1,-8*sc),
                 }, IBox)
-                Custom:RegisterLanguageLabel(ITB, "WriteInput")
+                -- Đăng ký PlaceholderText để cập nhật ngôn ngữ (không đụng vào .Text)
+                Custom:RegisterLanguageLabel(ITB, "WriteInput", "PlaceholderText")
 
                 function FI:Set(v) ITB.Text=v; FI.Value=v; Callback(v); NNVN_Hub:SaveValue(saveKey, v) end
                 ITB.FocusLost:Connect(function() FI:Set(ITB.Text) end)
@@ -1574,8 +1591,6 @@ function NNVN_Hub:CreateWindow(Config)
                 if loaded then
                     FD.Value = loaded
                 end
-
-                table.insert(Custom._dropdowns, FD)
 
                 local D = MakeItemFrame(35); D.Name = "Dropdown"
                 local DBtn = Custom:Create("TextButton", {
@@ -1628,6 +1643,7 @@ function NNVN_Hub:CreateWindow(Config)
                     AnchorPoint=Vector2.new(0,0.5), BackgroundTransparency=1, BorderSizePixel=0,
                     Position=UDim2.new(0,5*sc,0.5,0), Size=UDim2.new(1,-28*sc,1,-6*sc),
                 }, SOF)
+                -- Đăng ký để cập nhật ngôn ngữ
                 Custom:RegisterLanguageLabel(SelLabel, "SelectOptions")
 
                 Custom:Create("ImageLabel", {
@@ -1649,7 +1665,7 @@ function NNVN_Hub:CreateWindow(Config)
                     BackgroundColor3=Color3.fromRGB(0,0,0), BackgroundTransparency=0.88,
                     BorderSizePixel=0, Size=UDim2.new(1,0,0,20*sc), Name="SearchBar"
                 }, ScrollSel)
-                Custom:RegisterLanguageLabel(SearchBar, "Search")
+                Custom:RegisterLanguageLabel(SearchBar, "Search", "PlaceholderText")
 
                 SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
                     local q=string.lower(SearchBar.Text)
@@ -1757,7 +1773,7 @@ function NNVN_Hub:SetLanguage(lang)
 end
 
 -- ============================================================
--- FuncsV3 helper
+-- FuncsV3 helper (giữ nguyên)
 -- ============================================================
 local FuncsV3  = {}
 local SaveConf = nil
