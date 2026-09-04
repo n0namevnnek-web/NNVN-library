@@ -585,6 +585,7 @@ function NNVN_Hub:CreateWindow(Config)
         local TagText = type(TagConfig) == "table"
             and (TagConfig.Title or TagConfig.Text or TagConfig.Tag or "")
             or (TagConfig or "")
+        local TagColor = type(TagConfig) == "table" and TagConfig.Color or nil
         TagText = tostring(TagText)
 
         if TagText == "" then
@@ -594,8 +595,8 @@ function NNVN_Hub:CreateWindow(Config)
 
         if not TagFrame then
             TagFrame = Custom:Create("Frame", {
-                BackgroundColor3 = Color3.fromRGB(20,20,20),
-                BackgroundTransparency = 0.08,
+                BackgroundColor3 = Color3.fromRGB(234,179,8),
+                BackgroundTransparency = 0,
                 BorderSizePixel = 0,
                 AnchorPoint = Vector2.new(0,0.5),
                 Position = UDim2.new(0,0,0.5,0),
@@ -604,14 +605,14 @@ function NNVN_Hub:CreateWindow(Config)
             }, Top)
             Custom:Create("UICorner", {CornerRadius = UDim.new(0,5*sc)}, TagFrame)
             Custom:Create("UIStroke", {
-                Color = Color3.fromRGB(72,72,72),
+                Color = Color3.fromRGB(161,98,7),
                 Thickness = 0.8,
                 Transparency = 0.1,
             }, TagFrame)
 
             TagLabel = Custom:Create("TextLabel", {
                 Font = Enum.Font.GothamMedium,
-                TextColor3 = Color3.fromRGB(225,225,225),
+                TextColor3 = Color3.fromRGB(30,30,30),
                 TextSize = 10*sc,
                 TextXAlignment = Enum.TextXAlignment.Center,
                 BackgroundTransparency = 1,
@@ -623,6 +624,7 @@ function NNVN_Hub:CreateWindow(Config)
         end
 
         TagFrame.Visible = true
+        TagFrame.BackgroundColor3 = typeof(TagColor) == "Color3" and TagColor or Color3.fromRGB(234,179,8)
         TagLabel.Text = TagText
         UpdateTagLayout()
     end
