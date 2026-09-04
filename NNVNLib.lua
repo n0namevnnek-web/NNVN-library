@@ -25,6 +25,27 @@ local BG_SECTION  = Color3.fromRGB(255, 255, 255)
 local TEXT_HI     = Color3.fromRGB(235, 235, 235)
 local TEXT_LO     = Color3.fromRGB(140, 140, 140)
 
+-- Lucide-style glyph fallback for standalone NNVNLib. The hub passes Lucide
+-- names (for example "zap" and "settings"), while Roblox ImageLabel cannot
+-- render a lucide.dev URL directly.
+local LUCIDE_GLYPHS = {
+    zap="⚡", star="★", clipboard="▤", swords="⚔", settings="⚙", info="ⓘ",
+    shield="⬟", ["shield-check"]="✓", sparkles="✦", users="♟", palette="◉", sword="⚔",
+    sun="☀", list="☷", ["refresh-cw"]="↻", ["battery-charging"]="▰",
+    ["cloud-off"]="☁", eye="◉", hash="#", crosshair="⊕", shuffle="↝",
+    repeat="↻", play="▶", ["play-circle"]="⏵", check="✓",
+    ["check-circle"]="●", tag="◇", ["file-text"]="▤", target="◎",
+    move="↔", activity="∿", search="⌕", ["log-in"]="↪", ["rotate-ccw"]="↶", ["message-circle"]="●",
+    crown="♛", user="●", code="<>", terminal=">_", link="↗", x="×",
+}
+
+local function ResolveLucideGlyph(icon)
+    if type(icon) ~= "string" or icon == "" or icon:match("^rbxassetid://") then
+        return nil
+    end
+    return LUCIDE_GLYPHS[string.lower(icon)] or "•"
+end
+
 -- ============================================================
 -- Custom helper + Ngôn ngữ + Scale
 -- ============================================================
@@ -1073,14 +1094,29 @@ function NNVN_Hub:CreateWindow(Config)
             Name             = "TabName",
         }, Tab)
 
-        Custom:Create("ImageLabel", {
-            Image            = Icon,
-            ImageColor3      = ACCENT,
-            BackgroundTransparency = 1,
-            BorderSizePixel  = 0,
-            Position         = UDim2.new(0,8*sc,0,7*sc),
-            Size             = UDim2.new(0,15*sc,0,15*sc),
-        }, Tab)
+        local IconGlyph = ResolveLucideGlyph(Icon)
+        if IconGlyph then
+            Custom:Create("TextLabel", {
+                Text = IconGlyph,
+                Font = Enum.Font.GothamBold,
+                TextColor3 = ACCENT,
+                TextSize = 15*sc,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Position = UDim2.new(0,7*sc,0,6*sc),
+                Size = UDim2.new(0,18*sc,0,18*sc),
+            }, Tab)
+        else
+            Custom:Create("ImageLabel", {
+                Image            = Icon,
+                ImageColor3      = ACCENT,
+                BackgroundTransparency = 1,
+                BorderSizePixel  = 0,
+                Position         = UDim2.new(0,8*sc,0,7*sc),
+                Size             = UDim2.new(0,15*sc,0,15*sc),
+            }, Tab)
+        end
 
         if CountTab == 0 then
             LayersPageLayout:JumpToIndex(0)
@@ -1132,7 +1168,7 @@ function NNVN_Hub:CreateWindow(Config)
         local Sections  = {}
         local CountSec  = 0
 
-        function Sections:AddSection(Title, OpenSection)
+        function Sections:AddSection(Title, OpenSection, Icon)
             Title       = Title or ""
             OpenSection = OpenSection ~= nil and OpenSection or false
 
@@ -1183,6 +1219,21 @@ function NNVN_Hub:CreateWindow(Config)
                 Size             = UDim2.new(1,4*sc,1,4*sc),
             }, ChevFrame)
 
+            local SectionGlyph = ResolveLucideGlyph(Icon)
+            if SectionGlyph then
+                Custom:Create("TextLabel", {
+                    Text             = SectionGlyph,
+                    Font             = Enum.Font.GothamBold,
+                    TextColor3       = ACCENT,
+                    TextSize         = 14*sc,
+                    TextXAlignment   = Enum.TextXAlignment.Center,
+                    BackgroundTransparency = 1,
+                    BorderSizePixel  = 0,
+                    Position         = UDim2.new(0,7*sc,0.5,-8*sc),
+                    Size             = UDim2.new(0,18*sc,0,16*sc),
+                }, SectionReal)
+            end
+
             Custom:Create("TextLabel", {
                 Font             = Enum.Font.GothamBold,
                 Text             = Title,
@@ -1193,8 +1244,8 @@ function NNVN_Hub:CreateWindow(Config)
                 AnchorPoint      = Vector2.new(0,0.5),
                 BackgroundTransparency = 1,
                 BorderSizePixel  = 0,
-                Position         = UDim2.new(0,10*sc,0.5,0),
-                Size             = UDim2.new(1,-50*sc,0,13*sc),
+                Position         = UDim2.new(0,(SectionGlyph and 30 or 10)*sc,0.5,0),
+                Size             = UDim2.new(1,(SectionGlyph and -70 or -50)*sc,0,13*sc),
                 Name             = "SectionTitle"
             }, SectionReal)
 
