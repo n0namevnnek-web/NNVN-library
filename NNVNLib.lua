@@ -25,25 +25,35 @@ local BG_SECTION  = Color3.fromRGB(255, 255, 255)
 local TEXT_HI     = Color3.fromRGB(235, 235, 235)
 local TEXT_LO     = Color3.fromRGB(140, 140, 140)
 
--- Lucide-style glyph fallback for standalone NNVNLib. The hub passes Lucide
--- names (for example "zap" and "settings"), while Roblox ImageLabel cannot
--- render a lucide.dev URL directly.
-local LUCIDE_GLYPHS = {
-    zap="⚡", star="★", clipboard="▤", swords="⚔", settings="⚙", info="ⓘ",
-    shield="⬟", ["shield-check"]="✓", sparkles="✦", users="♟", palette="◉", sword="⚔",
-    sun="☀", list="☷", ["refresh-cw"]="↻", ["battery-charging"]="▰",
-    ["cloud-off"]="☁", eye="◉", hash="#", crosshair="⊕", shuffle="↝",
-    ["repeat"]="↻", play="▶", ["play-circle"]="⏵", check="✓",
-    ["check-circle"]="●", tag="◇", ["file-text"]="▤", target="◎",
-    move="↔", activity="∿", search="⌕", ["log-in"]="↪", ["rotate-ccw"]="↶", ["message-circle"]="●",
-    crown="♛", user="●", code="<>", terminal=">_", link="↗", x="×",
+-- Lucide icon assets from the icon pack used by the linked library.
+local LUCIDE_ICONS = {
+    zap="rbxassetid://7733655755", star="rbxassetid://7734068321",
+    clipboard="rbxassetid://7733734762", swords="rbxassetid://7733765307",
+    settings="rbxassetid://7734053495", info="rbxassetid://7733964719",
+    shield="rbxassetid://7734056608", ["shield-check"]="rbxassetid://7734056411",
+    sparkles="rbxassetid://7734068321", users="rbxassetid://7743876054",
+    sword="rbxassetid://7733765307", palette="rbxassetid://7734021595",
+    sun="rbxassetid://7734068495", list="rbxassetid://7743869612",
+    ["refresh-cw"]="rbxassetid://7734051052", ["battery-charging"]="rbxassetid://7733674402",
+    ["cloud-off"]="rbxassetid://7733745572", eye="rbxassetid://7733774602",
+    hash="rbxassetid://7733955906", crosshair="rbxassetid://7733765307",
+    shuffle="rbxassetid://7734057059", ["repeat"]="rbxassetid://7734051454",
+    play="rbxassetid://7743871480", ["play-circle"]="rbxassetid://7734037784",
+    check="rbxassetid://7733715400", ["check-circle"]="rbxassetid://7733919427",
+    tag="rbxassetid://7734075797", ["file-text"]="rbxassetid://7733789088",
+    target="rbxassetid://7743872758", move="rbxassetid://7743870731",
+    activity="rbxassetid://7733655755", search="rbxassetid://7734052925",
+    ["log-in"]="rbxassetid://7733992604", ["rotate-ccw"]="rbxassetid://7734051861",
+    ["message-circle"]="rbxassetid://7733993311", crown="rbxassetid://7733765398",
+    user="rbxassetid://7743875962", code="rbxassetid://7733749837",
+    terminal="rbxassetid://7743872929", link="rbxassetid://7733978098",
+    x="rbxassetid://7743878857",
 }
 
-local function ResolveLucideGlyph(icon)
-    if type(icon) ~= "string" or icon == "" or icon:match("^rbxassetid://") then
-        return nil
-    end
-    return LUCIDE_GLYPHS[string.lower(icon)] or "•"
+local function ResolveLucideIcon(icon)
+    if type(icon) ~= "string" or icon == "" then return nil end
+    if icon:match("^rbxassetid://") then return icon end
+    return LUCIDE_ICONS[string.lower(icon)]
 end
 
 -- ============================================================
@@ -1094,14 +1104,11 @@ function NNVN_Hub:CreateWindow(Config)
             Name             = "TabName",
         }, Tab)
 
-        local IconGlyph = ResolveLucideGlyph(Icon)
-        if IconGlyph then
-            Custom:Create("TextLabel", {
-                Text = IconGlyph,
-                Font = Enum.Font.GothamBold,
-                TextColor3 = ACCENT,
-                TextSize = 15*sc,
-                TextXAlignment = Enum.TextXAlignment.Center,
+        local IconAsset = ResolveLucideIcon(Icon)
+        if IconAsset then
+            Custom:Create("ImageLabel", {
+                Image = IconAsset,
+                ImageColor3 = ACCENT,
                 BackgroundTransparency = 1,
                 BorderSizePixel = 0,
                 Position = UDim2.new(0,7*sc,0,6*sc),
@@ -1219,18 +1226,15 @@ function NNVN_Hub:CreateWindow(Config)
                 Size             = UDim2.new(1,4*sc,1,4*sc),
             }, ChevFrame)
 
-            local SectionGlyph = ResolveLucideGlyph(Icon)
-            if SectionGlyph then
-                Custom:Create("TextLabel", {
-                    Text             = SectionGlyph,
-                    Font             = Enum.Font.GothamBold,
-                    TextColor3       = ACCENT,
-                    TextSize         = 14*sc,
-                    TextXAlignment   = Enum.TextXAlignment.Center,
+            local SectionIcon = ResolveLucideIcon(Icon)
+            if SectionIcon then
+                Custom:Create("ImageLabel", {
+                    Image            = SectionIcon,
+                    ImageColor3      = ACCENT,
                     BackgroundTransparency = 1,
                     BorderSizePixel  = 0,
-                    Position         = UDim2.new(0,7*sc,0.5,-8*sc),
-                    Size             = UDim2.new(0,18*sc,0,16*sc),
+                    Position         = UDim2.new(0,7*sc,0.5,-9*sc),
+                    Size             = UDim2.new(0,18*sc,0,18*sc),
                 }, SectionReal)
             end
 
@@ -1244,8 +1248,8 @@ function NNVN_Hub:CreateWindow(Config)
                 AnchorPoint      = Vector2.new(0,0.5),
                 BackgroundTransparency = 1,
                 BorderSizePixel  = 0,
-                Position         = UDim2.new(0,(SectionGlyph and 30 or 10)*sc,0.5,0),
-                Size             = UDim2.new(1,(SectionGlyph and -70 or -50)*sc,0,13*sc),
+                Position         = UDim2.new(0,(SectionIcon and 30 or 10)*sc,0.5,0),
+                Size             = UDim2.new(1,(SectionIcon and -70 or -50)*sc,0,13*sc),
                 Name             = "SectionTitle"
             }, SectionReal)
 
