@@ -554,7 +554,8 @@ function NNVN_Hub:CreateWindow(Config)
     }, Main)
     Custom:Create("UICorner", {}, Top)
 
-    Custom:Create("TextLabel", {
+    -- Title + Tag (giống WindUI)
+    local TitleLabel = Custom:Create("TextLabel", {
         Font           = Enum.Font.GothamBold,
         Text           = Title,
         TextColor3     = TEXT_HI,
@@ -562,9 +563,72 @@ function NNVN_Hub:CreateWindow(Config)
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Size           = UDim2.new(0.55,0,1,0),
+        AutomaticSize   = Enum.AutomaticSize.X,
+        Size           = UDim2.new(0,0,1,0),
         Position       = UDim2.new(0,10*sc,0,0),
+        Name           = "WindowTitle",
     }, Top)
+
+    local TagFrame
+    local TagLabel
+
+    local function UpdateTagLayout()
+        task.defer(function()
+            if not TagFrame or not TagLabel or not TagFrame.Visible then return end
+            local gap = 8*sc
+            TagFrame.Position = UDim2.new(0,10*sc + TitleLabel.TextBounds.X + gap,0.5,0)
+            TagFrame.Size = UDim2.new(0,TagLabel.TextBounds.X + 14*sc,0,20*sc)
+        end)
+    end
+
+    local function SetWindowTag(TagConfig)
+        local TagText = type(TagConfig) == "table"
+            and (TagConfig.Title or TagConfig.Text or TagConfig.Tag or "")
+            or (TagConfig or "")
+        TagText = tostring(TagText)
+
+        if TagText == "" then
+            if TagFrame then TagFrame.Visible = false end
+            return
+        end
+
+        if not TagFrame then
+            TagFrame = Custom:Create("Frame", {
+                BackgroundColor3 = Color3.fromRGB(20,20,20),
+                BackgroundTransparency = 0.08,
+                BorderSizePixel = 0,
+                AnchorPoint = Vector2.new(0,0.5),
+                Position = UDim2.new(0,0,0.5,0),
+                Size = UDim2.new(0,0,0,20*sc),
+                Name = "WindowTag",
+            }, Top)
+            Custom:Create("UICorner", {CornerRadius = UDim.new(0,5*sc)}, TagFrame)
+            Custom:Create("UIStroke", {
+                Color = Color3.fromRGB(72,72,72),
+                Thickness = 0.8,
+                Transparency = 0.1,
+            }, TagFrame)
+
+            TagLabel = Custom:Create("TextLabel", {
+                Font = Enum.Font.GothamMedium,
+                TextColor3 = Color3.fromRGB(225,225,225),
+                TextSize = 10*sc,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Size = UDim2.new(1, -14*sc, 1, 0),
+                Position = UDim2.new(0,7*sc,0,0),
+                Name = "TagText",
+            }, TagFrame)
+        end
+
+        TagFrame.Visible = true
+        TagLabel.Text = TagText
+        UpdateTagLayout()
+    end
+
+    SetWindowTag(Config.Tag or Config.tag)
+    TitleLabel:GetPropertyChangedSignal("TextBounds"):Connect(UpdateTagLayout)
 
     local DescLabel = Custom:Create("TextLabel", {
         Font           = Enum.Font.GothamBold,
@@ -927,7 +991,14 @@ function NNVN_Hub:CreateWindow(Config)
         Name             = "DropdownSelectReal"
     }, DropdownSelect)
 
-    local DropdownFolder = Custom:Create("Folder", {Name="DropdownFolder"}, DropdownSelectReal)
+    -- UIPageLayout must be parented to a GuiObject. A Folder causes the
+    -- selected dropdown page to remain blank on some clients.
+    local DropdownFolder = Custom:Create("Frame", {
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1,0,1,0),
+        Name = "DropdownFolder",
+    }, DropdownSelectReal)
     local DropPageLayout = Custom:Create("UIPageLayout", {
         EasingDirection = Enum.EasingDirection.InOut,
         EasingStyle     = Enum.EasingStyle.Quad,
@@ -942,6 +1013,16 @@ function NNVN_Hub:CreateWindow(Config)
     local Tabs      = {}
     local CountTab  = 0
     local CountDD   = 0
+
+    -- Compatible with Window:Tag({...}) and allows the FREE/PREMIUM pill
+    -- to update after the window has been created.
+    function Tabs:Tag(Config)
+        SetWindowTag(Config)
+    end
+
+    function Tabs:SetTag(Config)
+        SetWindowTag(Config)
+    end
 
     function Tabs:CreateTab(Config)
         local _Name = Config[1] or Config.Name or ""
@@ -1657,7 +1738,15 @@ function NNVN_Hub:CreateWindow(Config)
                     LayoutOrder=CountDD, BackgroundTransparency=1, BorderSizePixel=0,
                     Size=UDim2.new(1,0,1,0), Name="ScrollSelect",
                 }, DropdownFolder)
-                Custom:Create("UIListLayout", {Padding=UDim.new(0,3*sc), SortOrder=Enum.SortOrder.LayoutOrder}, ScrollSel)
+                local ScrollLayout = Custom:Create("UIListLayout", {
+                    Padding=UDim.new(0,3*sc),
+                    SortOrder=Enum.SortOrder.LayoutOrder,
+                }, ScrollSel)
+
+                local function UpdateCanvas()
+                    ScrollSel.CanvasSize = UDim2.new(0,0,0,ScrollLayout.AbsoluteContentSize.Y + 4*sc)
+                end
+                ScrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvas)
 
                 local SearchBar = Custom:Create("TextBox", {
                     Font=Enum.Font.GothamBold, PlaceholderText=Custom:T("Search"),
@@ -1686,7 +1775,13 @@ function NNVN_Hub:CreateWindow(Config)
                 end
 
                 function FD:Set(Val)
-                    FD.Value = Val or FD.Value
+                    if type(Val) == "table" then
+                        FD.Value = Val
+                    elseif Val == nil or Val == "" then
+                        FD.Value = {}
+                    else
+                        FD.Value = {Val}
+                    end
                     for _, Op in pairs(ScrollSel:GetChildren()) do
                         if Op.Name~="UIListLayout" and Op.Name~="SearchBar" then
                             local found = table.find(FD.Value, Op:FindFirstChild("OptionText") and Op.OptionText.Text or "")
@@ -1738,14 +1833,7 @@ function NNVN_Hub:CreateWindow(Config)
                         end
                         FD:Set(FD.Value)
                     end)
-                    local function UpdCan()
-                        local h=0
-                        for _, c in ipairs(ScrollSel:GetChildren()) do
-                            if c.Name~="UIListLayout" and c.Name~="SearchBar" then h+=4*sc+c.Size.Y.Offset end
-                        end
-                        ScrollSel.CanvasSize=UDim2.new(0,0,0,h)
-                    end
-                    UpdCan(); DropCnt+=1
+                    UpdateCanvas(); DropCnt+=1
                 end
 
                 function FD:Refresh(List, Sel)
